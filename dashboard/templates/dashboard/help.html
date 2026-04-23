@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Help — MindMonitor AI{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+    <div class="page-header text-center mb-5">
+        <span class="section-badge">Support</span>
+        <h1 class="section-title mt-2">Help & Documentation</h1>
+        <p class="text-white-50 mt-3 mx-auto" style="max-width:500px;">Everything you need to know about using MindMonitor AI.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        <div class="col-lg-8">
+
+            <!-- How it works -->
+            <div class="glass-card p-5 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="feature-icon-wrap" style="background:rgba(59,130,246,0.15);color:#3b82f6;width:50px;height:50px;font-size:1.4rem;">
+                        <i class="bi bi-cpu"></i>
+                    </div>
+                    <h4 class="text-white fw-bold mb-0">How It Works</h4>
+                </div>
+                <p class="text-white-50 mb-3">MindMonitor AI uses a Convolutional Neural Network (CNN) trained on the FER-2013 dataset to analyze facial expressions in real-time. The pipeline is:</p>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1"><i class="bi bi-1-circle text-accent me-2"></i>Face Detection</strong>
+                            <p class="small text-white-50 mb-0">OpenCV Haar Cascades locate faces in each camera frame.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1"><i class="bi bi-2-circle text-accent me-2"></i>Preprocessing</strong>
+                            <p class="small text-white-50 mb-0">Faces are cropped and resized to 48×48 pixels for the model.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1"><i class="bi bi-3-circle text-accent me-2"></i>AI Inference</strong>
+                            <p class="small text-white-50 mb-0">The CNN predicts probabilities across 7 emotion classes every 0.3s.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1"><i class="bi bi-4-circle text-accent me-2"></i>Visualisation</strong>
+                            <p class="small text-white-50 mb-0">Results are overlaid on the live feed and logged to your history.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Guide -->
+            <div class="glass-card p-5 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="feature-icon-wrap" style="background:rgba(16,185,129,0.15);color:#10b981;width:50px;height:50px;font-size:1.4rem;">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <h4 class="text-white fw-bold mb-0">Reading the Dashboard</h4>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1">Stress Level</strong>
+                            <p class="small text-white-50 mb-0">Calculated from frequency of negative emotions (Anger, Fear, Disgust, Sadness). High levels trigger alerts.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1">Dominant Mood</strong>
+                            <p class="small text-white-50 mb-0">The emotion with the highest cumulative confidence score over the current session.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1">Trend Chart</strong>
+                            <p class="small text-white-50 mb-0">Shows stress and happiness levels over your last 30 logged data points.</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 rounded-3" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                            <strong class="text-white d-block mb-1">Session Timer</strong>
+                            <p class="small text-white-50 mb-0">Tracks how long the current monitoring session has been active.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Privacy -->
+            <div class="glass-card p-5 mb-4">
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div class="feature-icon-wrap" style="background:rgba(245,158,11,0.15);color:#f59e0b;width:50px;height:50px;font-size:1.4rem;">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <h4 class="text-white fw-bold mb-0">Privacy & Data</h4>
+                </div>
+                <p class="text-white-50 mb-0">
+                    Your privacy is our priority. Video data is processed locally in memory and is <strong class="text-white">never stored or uploaded</strong>.
+                    Only the resulting emotion label and timestamp are saved to your personal history for progress tracking.
+                    You can view and manage your history at any time from the Reports page.
+                </p>
+            </div>
+
+            <div class="text-center">
+                <a href="{% url 'dashboard' %}" class="btn btn-primary rounded-pill px-5 me-2">
+                    <i class="bi bi-grid me-2"></i>Go to Dashboard
+                </a>
+                <a href="{% url 'contact' %}" class="btn btn-outline-light rounded-pill px-5">
+                    <i class="bi bi-envelope me-2"></i>Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

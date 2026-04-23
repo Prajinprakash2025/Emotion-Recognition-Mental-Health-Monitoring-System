@@ -1,0 +1,19 @@
+# Environments
+venv/
+env/
+
+# Environment Variables
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE
+.vscode/
+.idea/
+
+# Note: The user explicitly requested to INCLUDE db.sqlite3 and ml_models/ in git
+# so we are NOT ignoring them.

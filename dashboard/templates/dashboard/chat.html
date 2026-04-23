@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if chat_mode == 'private' %}{{ peer.username }} — {% endif %}Chat — MindMonitor AI{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block extra_head %}
+<style>
+.wc-shell {
+    display: flex;
+    height: calc(100vh - 80px);
+    overflow: hidden;
+    background: rgba(8,14,26,0.6);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+/* Sidebar */
+.wc-sidebar {
+    width: 290px; min-width: 290px;
+    display: flex; flex-direction: column;
+    border-right: 1px solid rgba(255,255,255,0.07);
+    background: rgba(10,18,38,0.85);
+}
+.wc-sidebar-header {
+    padding: 16px 14px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex-shrink: 0;
+}
+.wc-sidebar-title { font-size: 0.95rem; font-weight: 700; color: #fff; margin: 0 0 10px; }
+.wc-search {
+    background: rgba(255,255,255,0.05) !important;
+    border: 1px solid rgba(255,255,255,0.08) !important;
+    color: #fff !important; border-radius: 10px !important;
+    font-size: 0.82rem !important; padding: 7px 12px !important;
+}
+.wc-search::placeholder { color: rgba(255,255,255,0.25) !important; }
+.wc-search:focus {
+    background: rgba(255,255,255,0.08) !important;
+    border-color: rgba(59,130,246,0.4) !important;
+    box-shadow: none !important; outline: none;
+}
+.wc-user-list { overflow-y: auto; flex: 1; }
+.wc-user-list::-webkit-scrollbar { width: 3px; }
+.wc-user-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+.wc-global-entry {
+    display: flex; align-items: center; gap: 11px;
+    padding: 11px 14px; cursor: pointer;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    text-decoration: none; transition: background 0.15s;
+}
+.wc-global-entry:hover, .wc-global-entry.active { background: rgba(59,130,246,0.12); }
+.wc-global-icon {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg,#3b82f6,#6d28d9);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; color: #fff; flex-shrink: 0;
+}
+.wc-global-label { font-size: 0.875rem; font-weight: 600; color: #fff; }
+.wc-global-sub   { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+
+.wc-user-row {
+    display: flex; align-items: center; gap: 11px;
+    padding: 9px 14px; cursor: pointer; text-decoration: none;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.wc-user-row:hover { background: rgba(255,255,255,0.04); }
+.wc-user-row.active { background: rgba(59,130,246,0.12); }
+
+.wc-avatar    { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(59,130,246,0.25); }
+.wc-avatar-sm { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid rgba(59,130,246,0.2); }
+.wc-user-name    { font-size: 0.85rem; font-weight: 600; color: #e2e8f0; line-height: 1.2; }
+.wc-user-preview { font-size: 0.7rem; color: rgba(255,255,255,0.35); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+.wc-user-ts      { font-size: 0.63rem; color: rgba(255,255,255,0.3); white-space: nowrap; margin-left: auto; align-self: flex-start; padding-top: 2px; }
+
+/* Main */
+.wc-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.wc-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    background: rgba(10,18,38,0.6); flex-shrink: 0;
+}
+.wc-header-name { font-size: 0.95rem; font-weight: 700; color: #fff; }
+.wc-header-sub  { font-size: 0.72rem; color: rgba(255,255,255,0.4); }
+.wc-header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+.wc-messages {
+    flex: 1; overflow-y: auto;
+    padding: 18px 22px;
+    display: flex; flex-direction: column; gap: 3px;
+}
+.wc-messages::-webkit-scrollbar { width: 4px; }
+.wc-messages::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+.wc-msg-row {
+    display: flex; align-items: flex-end; gap: 8px;
+    max-width: 70%; margin-bottom: 2px;
+}
+.wc-msg-row.self  { align-self: flex-end;  flex-direction: row-reverse; }
+.wc-msg-row.other { align-self: flex-start; }
+
+.wc-bubble {
+    padding: 8px 13px 6px; border-radius: 18px;
+    font-size: 0.875rem; line-height: 1.5;
+    word-break: break-word; max-width: 100%;
+}
+.wc-bubble.self {
+    background: linear-gradient(135deg,#2563eb,#1d4ed8);
+    color: #fff; border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 10px rgba(37,99,235,0.3);
+}
+.wc-bubble.other {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #e2e8f0; border-bottom-left-radius: 4px;
+}
+.wc-bubble-sender { font-size: 0.68rem; font-weight: 700; color: #60a5fa; margin-bottom: 3px; display: block; }
+.wc-bubble-sender a { color: inherit; text-decoration: none; }
+.wc-bubble-sender a:hover { text-decoration: underline; }
+.wc-bubble-time { font-size: 0.63rem; color: rgba(255,255,255,0.35); text-align: right; margin-top: 3px; display: block; }
+.wc-bubble.self .wc-bubble-time { color: rgba(255,255,255,0.55); }
+
+/* Input bar */
+.wc-input-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    background: rgba(10,18,38,0.6); flex-shrink: 0;
+}
+.wc-input {
+    flex: 1;
+    background: rgba(255,255,255,0.06) !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
+    color: #fff !important; border-radius: 24px !important;
+    padding: 9px 16px !important; font-size: 0.875rem !important;
+    transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+}
+.wc-input:focus {
+    border-color: rgba(59,130,246,0.5) !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1) !important;
+    background: rgba(255,255,255,0.08) !important;
+}
+.wc-input::placeholder { color: rgba(255,255,255,0.25) !important; }
+.wc-input:disabled {
+    opacity: 0.4; cursor: not-allowed;
+    background: rgba(255,255,255,0.02) !important;
+}
+.wc-send-btn {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: linear-gradient(135deg,#3b82f6,#2563eb);
+    border: none; color: #fff; font-size: 0.95rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+}
+.wc-send-btn:hover:not(:disabled) { transform: scale(1.08); box-shadow: 0 6px 18px rgba(59,130,246,0.5); }
+.wc-send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+/* Locked bar */
+.wc-locked-bar {
+    display: flex; align-items: center; justify-content: center; gap-10px;
+    padding: 14px 18px; gap: 12px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    background: rgba(10,18,38,0.6); flex-shrink: 0;
+}
+.wc-locked-msg {
+    font-size: 0.82rem; color: rgba(255,255,255,0.4);
+    display: flex; align-items: center; gap: 8px;
+}
+
+/* Empty / locked state */
+.wc-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.25); gap: 10px; font-size: 0.875rem;
+    text-align: center; padding: 24px;
+}
+.wc-empty i { font-size: 2.8rem; }
+
+/* Sidebar empty */
+.wc-sidebar-empty {
+    padding: 20px 14px; text-align: center;
+    color: rgba(255,255,255,0.3); font-size: 0.8rem; line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .wc-sidebar { width: 64px; min-width: 64px; }
+    .wc-sidebar-header { padding: 10px 6px; }
+    .wc-search, .wc-sidebar-title, .wc-user-name,
+    .wc-user-preview, .wc-user-ts, .wc-global-label, .wc-global-sub { display: none; }
+    .wc-user-row, .wc-global-entry { justify-content: center; padding: 10px 0; }
+    .wc-messages { padding: 10px; }
+    .wc-msg-row { max-width: 90%; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-md-4" style="padding-top:88px;padding-bottom:12px;height:100vh;">
+<div class="wc-shell">
+
+    <!-- ── Sidebar ─────────────────────────────────────────── -->
+    <aside class="wc-sidebar">
+        <div class="wc-sidebar-header">
+            <p class="wc-sidebar-title">
+                <i class="bi bi-chat-dots text-accent me-2"></i>Messages
+            </p>
+            <input type="text" id="userSearch" class="form-control wc-search" placeholder="Search…">
+        </div>
+
+        <div class="wc-user-list" id="userList">
+
+            <!-- Global chat -->
+            <a href="{% url 'chat_page' %}"
+               class="wc-global-entry {% if chat_mode == 'global' %}active{% endif %}">
+                <div class="wc-global-icon"><i class="bi bi-people-fill"></i></div>
+                <div class="overflow-hidden">
+                    <div class="wc-global-label">Community Chat</div>
+                    <div class="wc-global-sub">Everyone · Global</div>
+                </div>
+            </a>
+
+            <!-- Connected users only -->
+            {% for u in user_list %}
+            <a href="{% url 'private_chat' u.id %}"
+               class="wc-user-row {% if u.active %}active{% endif %}"
+               data-username="{{ u.username|lower }}">
+                <img src="{{ u.avatar }}" class="wc-avatar" alt="{{ u.username }}">
+                <div class="overflow-hidden flex-grow-1">
+                    <div class="wc-user-name">{{ u.username }}</div>
+                    {% if u.last_msg %}
+                    <div class="wc-user-preview">{{ u.last_msg }}</div>
+                    {% endif %}
+                </div>
+                {% if u.last_ts %}<span class="wc-user-ts">{{ u.last_ts }}</span>{% endif %}
+            </a>
+            {% empty %}
+            <div class="wc-sidebar-empty">
+                <i class="bi bi-person-plus d-block mb-2" style="font-size:1.6rem;color:rgba(59,130,246,0.4);"></i>
+                No connections yet.<br>
+                <a href="{% url 'connections_page' %}" class="text-accent text-decoration-none">
+                    Manage connections
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- ── Chat Window ─────────────────────────────────────── -->
+    <div class="wc-main">
+
+        <!-- Header -->
+        <div class="wc-header">
+            {% if chat_mode == 'global' %}
+                <div class="wc-global-icon" style="width:38px;height:38px;font-size:0.95rem;">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <div>
+                    <div class="wc-header-name">Community Chat</div>
+                    <div class="wc-header-sub">Open to all users</div>
+                </div>
+            {% else %}
+                <a href="{% url 'user_profile' peer.id %}">
+                    <img src="{{ peer.avatar }}" class="wc-avatar" alt="{{ peer.username }}">
+                </a>
+                <div>
+                    <div class="wc-header-name">{{ peer.username }}</div>
+                    <div class="wc-header-sub">
+                        {% if can_message %}
+                        <i class="bi bi-patch-check-fill text-success me-1" style="font-size:0.7rem;"></i>Connected
+                        {% else %}
+                        <i class="bi bi-lock-fill text-warning me-1" style="font-size:0.7rem;"></i>Not connected
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="wc-header-actions">
+                    <a href="{% url 'user_profile' peer.id %}"
+                       class="btn btn-sm btn-outline-light rounded-pill px-3">
+                        <i class="bi bi-person me-1"></i>Profile
+                    </a>
+                </div>
+            {% endif %}
+
+            <div class="wc-header-actions">
+                <a href="{% url 'connections_page' %}"
+                   class="btn btn-sm btn-outline-light rounded-pill px-3 position-relative">
+                    <i class="bi bi-people me-1"></i>Connections
+                    {% if pending_count %}
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                          style="font-size:0.6rem;">{{ pending_count }}</span>
+                    {% endif %}
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-light rounded-pill px-3">
+                    <i class="bi bi-grid"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="wc-messages" id="msgArea">
+            {% if chat_mode == 'global' %}
+                {% if global_messages %}
+                    {% for msg in global_messages %}
+                    <div class="wc-msg-row {% if msg.is_self %}self{% else %}other{% endif %}" data-id="{{ msg.id }}">
+                        {% if not msg.is_self %}
+                        <a href="{{ msg.profile_url }}">
+                            <img src="{{ msg.avatar }}" class="wc-avatar-sm" alt="{{ msg.username }}">
+                        </a>
+                        {% endif %}
+                        <div class="wc-bubble {% if msg.is_self %}self{% else %}other{% endif %}">
+                            {% if not msg.is_self %}
+                            <span class="wc-bubble-sender">
+                                <a href="{{ msg.profile_url }}">{{ msg.username }}</a>
+                            </span>
+                            {% endif %}
+                            {{ msg.message }}
+                            <span class="wc-bubble-time">{{ msg.timestamp }}</span>
+                        </div>
+                        {% if msg.is_self %}
+                        <img src="{{ msg.avatar }}" class="wc-avatar-sm" alt="{{ msg.username }}">
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="wc-empty">
+                    <i class="bi bi-chat-heart"></i>
+                    <span>No messages yet — say hello to the community!</span>
+                </div>
+                {% endif %}
+
+            {% else %}
+                {% if can_message %}
+                    {% if pm_messages %}
+                        {% for msg in pm_messages %}
+                        <div class="wc-msg-row {% if msg.is_self %}self{% else %}other{% endif %}" data-id="{{ msg.id }}">
+                            {% if not msg.is_self %}
+                            <a href="{{ msg.profile_url }}">
+                                <img src="{{ msg.avatar }}" class="wc-avatar-sm" alt="{{ msg.username }}">
+                            </a>
+                            {% endif %}
+                            <div class="wc-bubble {% if msg.is_self %}self{% else %}other{% endif %}">
+                                {{ msg.message }}
+                                <span class="wc-bubble-time">{{ msg.timestamp }}</span>
+                            </div>
+                            {% if msg.is_self %}
+                            <img src="{{ msg.avatar }}" class="wc-avatar-sm" alt="{{ msg.username }}">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                    <div class="wc-empty">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Start your private conversation with <strong style="color:#93c5fd;">{{ peer.username }}</strong></span>
+                    </div>
+                    {% endif %}
+                {% else %}
+                <div class="wc-empty">
+                    <i class="bi bi-lock"></i>
+                    <span>
+                        You are not connected with <strong style="color:#93c5fd;">{{ peer.username }}</strong>.<br>
+                        <a href="{% url 'user_profile' peer.id %}" class="text-accent text-decoration-none">
+                            Visit their profile
+                        </a> to send a connection request.
+                    </span>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Input bar — locked if not connected in private mode -->
+        {% if chat_mode == 'global' or can_message %}
+        <div class="wc-input-bar">
+            <input type="text" id="msgInput" class="wc-input"
+                   placeholder="{% if chat_mode == 'global' %}Message the community…{% else %}Message {{ peer.username }}…{% endif %}"
+                   maxlength="1000" autocomplete="off">
+            <button id="sendBtn" class="wc-send-btn" title="Send">
+                <i class="bi bi-send-fill"></i>
+            </button>
+        </div>
+        {% else %}
+        <div class="wc-locked-bar">
+            <div class="wc-locked-msg">
+                <i class="bi bi-lock-fill text-warning"></i>
+                You can only message this user after connecting.
+                <a href="{% url 'user_profile' peer.id %}" class="text-accent text-decoration-none ms-1">
+                    Send a request →
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+    </div><!-- /wc-main -->
+</div><!-- /wc-shell -->
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if chat_mode == 'global' or can_message %}
+<script>
+(function () {
+    const MODE      = "{{ chat_mode }}";
+    const PEER_ID   = {{ peer.id|default:"null" }};
+    const MY_AVATAR = "https://ui-avatars.com/api/?name={{ user.username }}&background=3b82f6&color=fff&size=64&bold=true";
+    const SEND_URL  = "{% url 'send_message' %}";
+    const POLL_URL  = MODE === 'global'
+        ? "{% url 'poll_global' %}"
+        : "{% url 'poll_private' peer.id|default:0 %}";
+
+    let lastId  = {{ last_id }};
+    const area  = document.getElementById('msgArea');
+    const input = document.getElementById('msgInput');
+    const btn   = document.getElementById('sendBtn');
+
+    function getCookie(n) {
+        const v = document.cookie.match('(^|;) ?' + n + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+
+    function esc(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function buildRow(msg) {
+        const avatar = msg.is_self ? MY_AVATAR : msg.avatar;
+        const url    = msg.profile_url || '#';
+        const row    = document.createElement('div');
+        row.className = `wc-msg-row ${msg.is_self ? 'self' : 'other'}`;
+        row.dataset.id = msg.id;
+
+        const avatarHtml = `<a href="${url}"><img src="${avatar}" class="wc-avatar-sm" alt="${esc(msg.username)}"></a>`;
+        const sender = (!msg.is_self && MODE === 'global')
+            ? `<span class="wc-bubble-sender"><a href="${url}">${esc(msg.username)}</a></span>` : '';
+
+        const bubble = document.createElement('div');
+        bubble.className = `wc-bubble ${msg.is_self ? 'self' : 'other'}`;
+        bubble.innerHTML = `${sender}${esc(msg.message)}<span class="wc-bubble-time">${msg.timestamp}</span>`;
+
+        if (msg.is_self) { row.appendChild(bubble); row.insertAdjacentHTML('beforeend', avatarHtml); }
+        else             { row.insertAdjacentHTML('beforeend', avatarHtml); row.appendChild(bubble); }
+        return row;
+    }
+
+    function append(msg) {
+        const empty = area.querySelector('.wc-empty');
+        if (empty) empty.remove();
+        area.appendChild(buildRow(msg));
+        if (msg.id > lastId) lastId = msg.id;
+        area.scrollTop = area.scrollHeight;
+    }
+
+    function send() {
+        const text = input.value.trim();
+        if (!text) return;
+        input.value = '';
+        btn.disabled = true;
+        const body = { message: text, is_private: MODE === 'private' };
+        if (MODE === 'private') body.receiver_id = PEER_ID;
+        fetch(SEND_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify(body),
+        })
+        .then(r => r.json())
+        .then(d => { if (d.id) append(d); })
+        .catch(console.error)
+        .finally(() => { btn.disabled = false; input.focus(); });
+    }
+
+    function poll() {
+        fetch(`${POLL_URL}?after=${lastId}`)
+            .then(r => r.json())
+            .then(d => { (d.messages || []).forEach(append); })
+            .catch(() => {});
+    }
+
+    const search = document.getElementById('userSearch');
+    if (search) {
+        search.addEventListener('input', () => {
+            const q = search.value.toLowerCase();
+            document.querySelectorAll('.wc-user-row').forEach(r => {
+                r.style.display = r.dataset.username.includes(q) ? '' : 'none';
+            });
+        });
+    }
+
+    btn.addEventListener('click', send);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+    setInterval(poll, 4000);
+    area.scrollTop = area.scrollHeight;
+})();
+</script>
+{% endif %}
+{% endblock %}

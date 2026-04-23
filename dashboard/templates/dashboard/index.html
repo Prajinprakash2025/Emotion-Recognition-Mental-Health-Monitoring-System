@@ -1,0 +1,889 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard — MindMonitor AI{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 section-pad">
+    <div class="row g-4">
+
+        <!-- Left: Video Feed -->
+        <div class="col-lg-5 col-xl-4 d-flex flex-column gap-4">
+            <div class="glass-card p-4">
+                <h4 class="text-white fw-bold mb-1"><i class="bi bi-activity text-accent me-2"></i>Emotion Analysis</h4>
+                <p class="text-white-50 small mb-0">Real-time AI facial expression monitoring for {{ user.username }}.</p>
+            </div>
+
+            <div class="glass-card flex-grow-1">
+                <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center pt-4 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="status-dot"></span>
+                        <span class="text-uppercase text-white-50 small fw-bold tracking-wider">Live Stream</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button id="stopCameraBtn" class="btn btn-sm btn-outline-danger rounded-pill d-none">
+                            <i class="bi bi-stop-circle-fill me-1"></i>Stop
+                        </button>
+                        <span class="badge glass-badge"><i class="bi bi-camera-video me-1"></i>Connected</span>
+                    </div>
+                </div>
+                <div class="card-body p-4 d-flex flex-column align-items-center">
+                    <div class="video-wrapper position-relative bg-dark rounded-3 overflow-hidden w-100" id="videoContainer" style="min-height:320px;">
+                        {% if user.is_authenticated %}
+                        <div id="cameraPlaceholder" class="d-flex flex-column align-items-center justify-content-center h-100 w-100 position-absolute top-0 start-0" style="background:rgba(0,0,0,0.85);z-index:3;">
+                            <i class="bi bi-camera-video fs-1 text-white-50 mb-3"></i>
+                            <h5 class="text-white mb-3">Camera Offline</h5>
+                            <button id="startCameraBtn" class="btn btn-primary rounded-pill px-5 py-2 fw-bold">
+                                <i class="bi bi-play-fill me-2"></i>Start Monitoring
+                            </button>
+                            <p class="text-white-50 small mt-3">Click to activate webcam</p>
+                        </div>
+                        <img id="videoFeed" src="" class="video-feed w-100 h-100 object-fit-cover" alt="Live Feed">
+                        <div id="scanLine" class="scan-line d-none"></div>
+                        {% else %}
+                        <div class="d-flex flex-column align-items-center justify-content-center h-100 w-100">
+                            <i class="bi bi-lock-fill fs-1 text-white-50"></i>
+                            <p class="text-white mt-3">Please <a href="{% url 'login' %}" class="text-accent">login</a> to view the live feed.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 w-100 text-center">
+                        <p class="text-white-50 small mb-2 text-uppercase tracking-wider">Current Emotional State</p>
+                        <div id="emotionBadge" class="emotion-display neutral">
+                            <i class="bi bi-emoji-neutral me-2"></i><span>Calibrating...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Suggestions Card -->
+            <div class="glass-card p-4">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <div class="feature-icon-wrap" style="background:rgba(59,130,246,0.15);color:#3b82f6;">
+                        <i class="bi bi-lightbulb"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-white mb-0 fw-bold">AI Suggestions</h6>
+                        <small class="text-white-50">Based on your dominant emotion:
+                            <span class="epill-sm {% if dominant_emotion == 'Happy' %}happy{% elif dominant_emotion == 'Sad' %}sad{% elif dominant_emotion == 'Angry' %}angry{% elif dominant_emotion == 'Fear' %}fear{% elif dominant_emotion == 'Neutral' %}neutral{% else %}disgust{% endif %} ms-1">
+                                {{ dominant_emotion }}
+                            </span>
+                        </small>
+                    </div>
+                </div>
+
+                {% if emotion_percentages %}
+                <div class="mb-3">
+                    {% for emotion, pct in emotion_percentages.items %}
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="text-white-50 small" style="width:70px;">{{ emotion }}</span>
+                        <div class="progress flex-grow-1" style="height:5px;background:rgba(255,255,255,0.08);border-radius:10px;">
+                            <div class="progress-bar
+                                {% if emotion == 'Happy' %}bg-warning
+                                {% elif emotion == 'Sad' %}bg-info
+                                {% elif emotion == 'Angry' %}bg-danger
+                                {% else %}bg-secondary{% endif %}"
+                                style="width:{{ pct }}%;border-radius:10px;"></div>
+                        </div>
+                        <span class="text-white-50 small" style="width:38px;">{{ pct }}%</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <ul class="list-unstyled mb-0">
+                    {% for s in suggestions %}
+                    <li class="d-flex align-items-start gap-2 mb-2">
+                        <i class="bi {{ s.icon }} mt-1
+                            {% if suggestion_category == 'negative' %}text-info
+                            {% elif suggestion_category == 'happy' %}text-warning
+                            {% else %}text-accent{% endif %}"></i>
+                        <span class="text-white-50 small">{{ s.text }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right: Analytics -->
+        <div class="col-lg-7 col-xl-8">
+            <div class="row g-4">
+
+                <!-- Stats -->
+                <div class="col-md-4">
+                    <div class="glass-card p-4 h-100">
+                        <div class="text-white-50 small text-uppercase fw-bold tracking-wider mb-2">Session Time</div>
+                        <div class="fs-2 text-white fw-bold" id="sessionTimer">00:00</div>
+                        <div class="text-accent small mt-1"><i class="bi bi-clock me-1"></i>Active</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card p-4 h-100">
+                        <div class="text-white-50 small text-uppercase fw-bold tracking-wider mb-2">Avg. Stress</div>
+                        <div class="fs-2 text-white fw-bold" id="avgStress">--%</div>
+                        <div class="text-success small mt-1"><i class="bi bi-arrow-down me-1"></i>Low</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="glass-card p-4 h-100">
+                        <div class="text-white-50 small text-uppercase fw-bold tracking-wider mb-2">Dominant Mood</div>
+                        <div class="fs-2 text-white fw-bold" id="dominantMood">{{ dominant_emotion }}</div>
+                        <div class="text-info small mt-1"><i class="bi bi-graph-up me-1"></i>Trending</div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="col-12">
+                    <div class="glass-card">
+                        <div class="d-flex justify-content-between align-items-center p-4 pb-0">
+                            <h5 class="text-white fw-bold mb-0"><i class="bi bi-graph-up-arrow text-accent me-2"></i>Emotional Trends</h5>
+                            <a href="{% url 'reports' %}" class="btn btn-sm btn-outline-light rounded-pill">View History</a>
+                        </div>
+                        <div class="p-4">
+                            <img id="moodChartImg" src="{% url 'chart_image' %}" class="w-100 rounded-3" style="max-height:280px;object-fit:contain;" alt="Mood Chart">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights -->
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="feature-icon-wrap" style="background:rgba(239,68,68,0.15);color:#ef4444;">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <h6 class="text-white mb-0 fw-bold">Risk Detection</h6>
+                        </div>
+                        <p class="text-white-50 small mb-0" id="alertText">
+                            Monitoring for prolonged stress patterns. No anomalies detected in the current session.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <div class="feature-icon-wrap" style="background:rgba(16,185,129,0.15);color:#10b981;">
+                                <i class="bi bi-flower1"></i>
+                            </div>
+                            <h6 class="text-white mb-0 fw-bold">Smart Suggestions</h6>
+                        </div>
+                        <p class="text-white-50 small mb-0" id="tipText">
+                            Maintained calmness for 15 mins. Recommended: Continue light breathing exercises.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Community Support Chat -->
+                <div class="col-12">
+                    <div class="glass-card p-4">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="feature-icon-wrap" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">
+                                    <i class="bi bi-chat-dots"></i>
+                                </div>
+                                <div>
+                                    <h6 class="text-white mb-0 fw-bold">Community Support Chat</h6>
+                                    <small class="text-white-50">Connect with others — share support and positivity</small>
+                                </div>
+                            </div>
+                            <a href="{% url 'chat_page' %}" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                <i class="bi bi-chat-dots-fill me-2"></i>Open Chat
+                            </a>
+                        </div>
+                        <div class="mt-3 d-flex gap-3 flex-wrap">
+                            <div class="d-flex align-items-center gap-2 text-white-50 small">
+                                <i class="bi bi-people text-accent"></i> Global community room
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-white-50 small">
+                                <i class="bi bi-lock text-accent"></i> Private 1-on-1 messaging
+                            </div>
+                            <div class="d-flex align-items-center gap-2 text-white-50 small">
+                                <i class="bi bi-person-circle text-accent"></i> User profiles
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ══ Stress Relief Activities ══ -->
+                {% if show_relief %}
+                <div class="col-12" id="sraSection">
+                    <div class="glass-card p-4">
+
+                        <!-- Section header -->
+                        <div class="d-flex align-items-center gap-3 mb-1">
+                            <div class="sra-section-icon">
+                                <i class="bi bi-heart-pulse-fill"></i>
+                            </div>
+                            <div>
+                                <h5 class="text-white fw-bold mb-0">Stress Relief Activities</h5>
+                                <small class="text-white-50">Join simple activities to feel better right now</small>
+                            </div>
+                            <span class="ms-auto badge rounded-pill sra-trigger-badge">
+                                {% if dominant_emotion == 'Sad' or dominant_emotion == 'Angry' or dominant_emotion == 'Fear' or dominant_emotion == 'Stressed' or dominant_emotion == 'Disgust' %}
+                                    <i class="bi bi-emoji-frown me-1"></i>{{ dominant_emotion }} detected
+                                {% elif stress_level == 'High' %}
+                                    <i class="bi bi-activity me-1"></i>High stress detected
+                                {% else %}
+                                    <i class="bi bi-heart-pulse me-1"></i>Wellness activities
+                                {% endif %}
+                            </span>
+                        </div>
+
+                        <hr style="border-color:rgba(255,255,255,0.07);margin:16px 0;">
+
+                        <div class="row g-3">
+
+                            <!-- A. Breathing Exercise -->
+                            <div class="col-md-6">
+                                <div class="sra-card" data-activity="breathing">
+                                    <div class="sra-card-header">
+                                        <div class="sra-icon" style="background:rgba(16,185,129,0.15);color:#34d399;">
+                                            <i class="bi bi-wind"></i>
+                                        </div>
+                                        <div>
+                                            <div class="sra-card-title">Breathing Exercise</div>
+                                            <div class="sra-card-sub">4-4-6 calm breathing</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Animated breathing ring -->
+                                    <div class="sra-breath-ring-wrap d-none" id="breathRingWrap">
+                                        <div class="sra-breath-ring" id="breathRing">
+                                            <span id="breathLabel">Inhale</span>
+                                        </div>
+                                        <div class="sra-breath-steps">
+                                            <span id="breathStep" class="text-white-50 small">Inhale 4s → Hold 4s → Exhale 6s</span>
+                                        </div>
+                                        <div class="sra-breath-timer" id="breathTimer">4</div>
+                                    </div>
+
+                                    <div class="sra-participants" id="breathParticipants"></div>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="btn sra-btn-start rounded-pill px-4 fw-bold"
+                                                id="breathStartBtn"
+                                                onclick="startBreathing()">
+                                            <i class="bi bi-play-fill me-1"></i>Start
+                                        </button>
+                                        <button class="btn sra-btn-join rounded-pill px-3"
+                                                id="breathJoinBtn"
+                                                data-activity="breathing"
+                                                onclick="toggleJoin(this)">
+                                            <i class="bi bi-people me-1"></i>Join Group
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- B. Mood Game -->
+                            <div class="col-md-6">
+                                <div class="sra-card" data-activity="game">
+                                    <div class="sra-card-header">
+                                        <div class="sra-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+                                            <i class="bi bi-controller"></i>
+                                        </div>
+                                        <div>
+                                            <div class="sra-card-title">Quick Mood Game</div>
+                                            <div class="sra-card-sub">Click the circle — beat your score!</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Mini game canvas -->
+                                    <div class="sra-game-area d-none" id="gameArea">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-white-50 small">Score: <strong class="text-white" id="gameScore">0</strong></span>
+                                            <span class="text-white-50 small">Time: <strong class="text-white" id="gameTime">15</strong>s</span>
+                                        </div>
+                                        <div class="sra-game-field" id="gameField">
+                                            <div class="sra-game-target" id="gameTarget"></div>
+                                        </div>
+                                        <div class="text-center mt-2 d-none" id="gameResult">
+                                            <span class="text-white fw-bold">Final score: <span id="gameFinalScore"></span> 🎉</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="sra-participants" id="gameParticipants"></div>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="btn sra-btn-start rounded-pill px-4 fw-bold"
+                                                id="gameStartBtn"
+                                                onclick="startGame()">
+                                            <i class="bi bi-play-fill me-1"></i>Play
+                                        </button>
+                                        <button class="btn sra-btn-join rounded-pill px-3"
+                                                data-activity="game"
+                                                onclick="toggleJoin(this)">
+                                            <i class="bi bi-people me-1"></i>Join Group
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- C. Music Therapy -->
+                            <div class="col-md-6">
+                                <div class="sra-card" data-activity="music">
+                                    <div class="sra-card-header">
+                                        <div class="sra-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;">
+                                            <i class="bi bi-music-note-beamed"></i>
+                                        </div>
+                                        <div>
+                                            <div class="sra-card-title">Music Therapy</div>
+                                            <div class="sra-card-sub">Calming ambient sounds</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Audio player -->
+                                    <div class="sra-music-player" id="musicPlayer">
+                                        <div class="sra-music-bars" id="musicBars">
+                                            <span></span><span></span><span></span><span></span><span></span>
+                                        </div>
+                                        <div class="sra-music-tracks">
+                                            <button class="sra-track-btn active" data-track="rain"   onclick="selectTrack(this)">&#127783; Rain</button>
+                                            <button class="sra-track-btn"        data-track="ocean"  onclick="selectTrack(this)">&#127754; Ocean</button>
+                                            <button class="sra-track-btn"        data-track="forest" onclick="selectTrack(this)">&#127807; Forest</button>
+                                            <button class="sra-track-btn"        data-track="bowl"   onclick="selectTrack(this)">&#127895; Bowl</button>
+                                        </div>
+                                        <div id="musicFrameWrap" style="display:none;margin-top:8px;">
+                                            <div class="sra-music-now-playing">
+                                                <i class="bi bi-volume-up-fill me-2" style="color:#a78bfa;"></i>
+                                                <span id="musicNowPlaying" class="text-white-50 small">Playing...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="sra-participants" id="musicParticipants"></div>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="btn sra-btn-start rounded-pill px-4 fw-bold"
+                                                id="musicPlayBtn"
+                                                onclick="toggleMusic(this)">
+                                            <i class="bi bi-play-fill me-1"></i>Play
+                                        </button>
+                                        <button class="btn sra-btn-join rounded-pill px-3"
+                                                data-activity="music"
+                                                onclick="toggleJoin(this)">
+                                            <i class="bi bi-people me-1"></i>Join Group
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- D. Positive Challenge -->
+                            <div class="col-md-6">
+                                <div class="sra-card" data-activity="challenge">
+                                    <div class="sra-card-header">
+                                        <div class="sra-icon" style="background:rgba(251,191,36,0.15);color:#fbbf24;">
+                                            <i class="bi bi-trophy"></i>
+                                        </div>
+                                        <div>
+                                            <div class="sra-card-title">Positive Challenge</div>
+                                            <div class="sra-card-sub">Small acts, big impact</div>
+                                        </div>
+                                    </div>
+
+                                    <ul class="sra-challenge-list" id="challengeList">
+                                        <li class="sra-challenge-item" data-done="false"
+                                            onclick="toggleChallenge(this)">
+                                            <i class="bi bi-circle me-2"></i>
+                                            Send a kind message to 1 person
+                                        </li>
+                                        <li class="sra-challenge-item" data-done="false"
+                                            onclick="toggleChallenge(this)">
+                                            <i class="bi bi-circle me-2"></i>
+                                            Write 3 good things about today
+                                        </li>
+                                        <li class="sra-challenge-item" data-done="false"
+                                            onclick="toggleChallenge(this)">
+                                            <i class="bi bi-circle me-2"></i>
+                                            Take 5 slow, deep breaths
+                                        </li>
+                                        <li class="sra-challenge-item" data-done="false"
+                                            onclick="toggleChallenge(this)">
+                                            <i class="bi bi-circle me-2"></i>
+                                            Drink a glass of water mindfully
+                                        </li>
+                                    </ul>
+                                    <div class="sra-challenge-progress mt-2">
+                                        <div class="sra-challenge-bar" id="challengeBar" style="width:0%"></div>
+                                    </div>
+                                    <div class="text-white-50 small mt-1" id="challengeCount">0 / 4 completed</div>
+
+                                    <div class="sra-participants" id="challengeParticipants"></div>
+
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button class="btn sra-btn-join rounded-pill px-3"
+                                                data-activity="challenge"
+                                                onclick="toggleJoin(this)">
+                                            <i class="bi bi-people me-1"></i>Join Group
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div><!-- /row -->
+                    </div><!-- /glass-card -->
+                </div><!-- /col -->
+                {% else %}
+                <!-- Stay Positive section — only shown when mood is genuinely Happy -->
+                <div class="col-12">
+                    <div class="glass-card p-4">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="sra-section-icon" style="background:rgba(250,204,21,0.12);color:#fde047;border-color:rgba(250,204,21,0.2);">
+                                <i class="bi bi-sun"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-white fw-bold mb-0">Stay Positive Activities</h6>
+                                <small class="text-white-50">You're doing great — keep the momentum going!</small>
+                            </div>
+                        </div>
+                        <div class="mt-3 d-flex flex-wrap gap-2">
+                            <span class="sra-positive-pill"><i class="bi bi-journal-text me-1"></i>Gratitude journal</span>
+                            <span class="sra-positive-pill"><i class="bi bi-people me-1"></i>Share positivity</span>
+                            <span class="sra-positive-pill"><i class="bi bi-star me-1"></i>Celebrate a win</span>
+                            <span class="sra-positive-pill"><i class="bi bi-cup-hot me-1"></i>Mindful break</span>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'js/script.js' %}?v=3"></script>
+{% if show_relief %}
+{% autoescape off %}
+<script>
+const ACTIVITY_DATA = {{ activities_json }};
+const CSRF = '{{ csrf_token }}';
+
+/* ═══════════════════════════════════════════
+   INIT — runs once DOM is ready
+═══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+
+    /* 1. Pre-populate participant panels */
+    const panelMap = {
+        breathing: 'breathParticipants',
+        game:      'gameParticipants',
+        music:     'musicParticipants',
+        challenge: 'challengeParticipants',
+    };
+    ACTIVITY_DATA.forEach(function(a) {
+        renderParticipants(panelMap[a.key], a.participants, a.joined);
+        if (a.joined) {
+            const btn = document.querySelector('[data-activity="' + a.key + '"].sra-btn-join');
+            if (btn) markJoined(btn);
+        }
+    });
+
+    /* 2. Game target click — attached once here, not inside startGame */
+    const gameTarget = document.getElementById('gameTarget');
+    if (gameTarget) {
+        gameTarget.addEventListener('click', function () {
+            if (!gameRunning) return;
+            gameScore++;
+            document.getElementById('gameScore').textContent = gameScore;
+            moveTarget();
+        });
+    }
+});
+
+/* ═══════════════════════════════════════════
+   PARTICIPANTS
+═══════════════════════════════════════════ */
+function renderParticipants(elId, list, iJoined) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const total = list.length + (iJoined ? 1 : 0);
+    if (total === 0) { el.innerHTML = ''; return; }
+    let html = '<div class="sra-participants-row">';
+    list.slice(0, 5).forEach(function(p) {
+        html += '<img src="' + p.avatar + '" title="' + p.username + '" class="sra-avatar">';
+    });
+    if (iJoined) {
+        html += '<img src="https://ui-avatars.com/api/?name={{ user.username }}&background=3b82f6&color=fff&size=32&bold=true" class="sra-avatar sra-avatar-self" title="You">';
+    }
+    html += '<span class="sra-participants-count">' + total + ' doing this now</span></div>';
+    el.innerHTML = html;
+}
+
+function markJoined(btn) {
+    btn.classList.add('sra-btn-joined');
+    btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Joined';
+}
+function markLeft(btn) {
+    btn.classList.remove('sra-btn-joined');
+    btn.innerHTML = '<i class="bi bi-people me-1"></i>Join Group';
+}
+
+async function toggleJoin(btn) {
+    const type   = btn.dataset.activity;
+    const joined = btn.classList.contains('sra-btn-joined');
+    const url    = (joined ? '/api/activity/' + type + '/leave/' : '/api/activity/' + type + '/join/');
+    const panels = { breathing:'breathParticipants', game:'gameParticipants',
+                     music:'musicParticipants', challenge:'challengeParticipants' };
+    try {
+        const res  = await fetch(url, { method: 'POST', headers: { 'X-CSRFToken': CSRF } });
+        const data = await res.json();
+        if (data.joined) markJoined(btn); else markLeft(btn);
+        renderParticipants(panels[type], data.participants || [], data.joined);
+    } catch(e) { console.error('toggleJoin error:', e); }
+}
+
+/* ═══════════════════════════════════════════
+   A. BREATHING EXERCISE
+   Fix: display countdown correctly (show
+   remaining BEFORE decrementing), use
+   step-based scale instead of math on
+   remaining which could go negative.
+═══════════════════════════════════════════ */
+let breathInterval = null;
+const BREATH_SEQ = [
+    { label: 'Inhale', duration: 4, color: '#34d399' },
+    { label: 'Hold',   duration: 4, color: '#60a5fa' },
+    { label: 'Exhale', duration: 6, color: '#a78bfa' },
+];
+let breathSeqIdx  = 0;
+let breathTick    = 0;   /* counts UP within each phase: 0 … duration-1 */
+
+function startBreathing() {
+    const wrap = document.getElementById('breathRingWrap');
+    const btn  = document.getElementById('breathStartBtn');
+
+    /* Toggle stop */
+    if (breathInterval) {
+        clearInterval(breathInterval);
+        breathInterval = null;
+        breathSeqIdx = 0;
+        breathTick   = 0;
+        wrap.classList.add('d-none');
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Start';
+        return;
+    }
+
+    /* Start */
+    wrap.classList.remove('d-none');
+    btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i>Stop';
+    breathSeqIdx = 0;
+    breathTick   = 0;
+    renderBreathFrame();                          /* show first frame immediately */
+    breathInterval = setInterval(function () {
+        breathTick++;
+        const phase = BREATH_SEQ[breathSeqIdx];
+        if (breathTick >= phase.duration) {       /* advance to next phase */
+            breathSeqIdx = (breathSeqIdx + 1) % BREATH_SEQ.length;
+            breathTick   = 0;
+        }
+        renderBreathFrame();
+    }, 1000);
+}
+
+function renderBreathFrame() {
+    const phase     = BREATH_SEQ[breathSeqIdx];
+    const remaining = phase.duration - breathTick;   /* always 1 … duration */
+    const progress  = breathTick / phase.duration;   /* 0.0 … <1.0 */
+
+    document.getElementById('breathLabel').textContent = phase.label;
+    document.getElementById('breathTimer').textContent = remaining;
+
+    const ring = document.getElementById('breathRing');
+    ring.style.borderColor = phase.color;
+    ring.style.boxShadow   = '0 0 24px ' + phase.color + '55';
+
+    /* Scale: Inhale grows 1.0→1.24, Hold stays 1.24, Exhale shrinks 1.24→1.0 */
+    let scale = 1.0;
+    if (phase.label === 'Inhale')      scale = 1.0  + progress * 0.24;
+    else if (phase.label === 'Hold')   scale = 1.24;
+    else if (phase.label === 'Exhale') scale = 1.24 - progress * 0.24;
+    ring.style.transform = 'scale(' + scale.toFixed(3) + ')';
+}
+
+/* ═══════════════════════════════════════════
+   B. MOOD GAME
+   Fix: use a boolean `gameRunning` flag
+   instead of checking gameInterval (which
+   is null after clearInterval). Move target
+   AFTER the area is visible so clientWidth
+   is non-zero.
+═══════════════════════════════════════════ */
+let gameRunning  = false;
+let gameInterval = null;
+let gameScore    = 0;
+let gameTimeLeft = 15;
+
+function startGame() {
+    if (gameRunning) return;          /* prevent double-start */
+
+    const area   = document.getElementById('gameArea');
+    const btn    = document.getElementById('gameStartBtn');
+    const result = document.getElementById('gameResult');
+
+    /* Reset UI */
+    area.classList.remove('d-none');  /* show FIRST so clientWidth is valid */
+    result.classList.add('d-none');
+    gameScore    = 0;
+    gameTimeLeft = 15;
+    document.getElementById('gameScore').textContent = '0';
+    document.getElementById('gameTime').textContent  = '15';
+    btn.disabled  = true;
+    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Playing…';
+    gameRunning   = true;
+
+    /* Move target AFTER area is visible */
+    requestAnimationFrame(function() { moveTarget(); });
+
+    gameInterval = setInterval(function () {
+        gameTimeLeft--;
+        document.getElementById('gameTime').textContent = gameTimeLeft;
+        if (gameTimeLeft <= 0) {
+            clearInterval(gameInterval);
+            gameInterval = null;
+            gameRunning  = false;
+            document.getElementById('gameFinalScore').textContent = gameScore;
+            result.classList.remove('d-none');
+            btn.disabled  = false;
+            btn.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Play Again';
+        }
+    }, 1000);
+}
+
+function moveTarget() {
+    const field  = document.getElementById('gameField');
+    const target = document.getElementById('gameTarget');
+    if (!field || !target) return;
+    const fw = Math.max(field.clientWidth  - 48, 10);
+    const fh = Math.max(field.clientHeight - 48, 10);
+    target.style.left = (Math.random() * fw) + 'px';
+    target.style.top  = (Math.random() * fh) + 'px';
+}
+
+/* ═══════════════════════════════════════════
+   C. MUSIC THERAPY — Web Audio API
+   Generates calming sounds directly in the
+   browser. No YouTube, no embeds, no errors.
+   Rain  : filtered white noise
+   Ocean : slow LFO-modulated noise
+   Forest: layered sine tones (birds)
+   Bowl  : resonant sine fade (singing bowl)
+═══════════════════════════════════════════ */
+let audioCtx     = null;
+let musicPlaying = false;
+let musicNodes   = [];          /* all active nodes for the current track */
+let currentTrack = 'rain';
+
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function stopAllNodes() {
+    musicNodes.forEach(function(n) {
+        try { n.stop(); } catch(e) {}
+    });
+    musicNodes = [];
+}
+
+/* ── Rain: white noise through a bandpass filter ── */
+function playRain(ctx) {
+    var bufSize  = ctx.sampleRate * 2;
+    var buffer   = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    var data     = buffer.getChannelData(0);
+    for (var i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+    var src    = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop   = true;
+
+    var filter       = ctx.createBiquadFilter();
+    filter.type      = 'bandpass';
+    filter.frequency.value = 1200;
+    filter.Q.value   = 0.4;
+
+    var gain       = ctx.createGain();
+    gain.gain.value = 0.35;
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+    musicNodes.push(src);
+}
+
+/* ── Ocean: noise with slow volume LFO ── */
+function playOcean(ctx) {
+    var bufSize = ctx.sampleRate * 4;
+    var buffer  = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    var data    = buffer.getChannelData(0);
+    for (var i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+
+    var src    = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop   = true;
+
+    var filter       = ctx.createBiquadFilter();
+    filter.type      = 'lowpass';
+    filter.frequency.value = 600;
+
+    var gain        = ctx.createGain();
+    gain.gain.value = 0.3;
+
+    /* LFO for wave rhythm */
+    var lfo            = ctx.createOscillator();
+    lfo.frequency.value = 0.12;   /* ~1 wave every 8 seconds */
+    var lfoGain        = ctx.createGain();
+    lfoGain.gain.value = 0.25;
+    lfo.connect(lfoGain);
+    lfoGain.connect(gain.gain);
+    lfo.start();
+
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+    musicNodes.push(src, lfo);
+}
+
+/* ── Forest: gentle layered sine tones (birds + wind) ── */
+function playForest(ctx) {
+    var tones = [320, 480, 640, 960];
+    tones.forEach(function(freq, idx) {
+        var osc       = ctx.createOscillator();
+        osc.type      = 'sine';
+        osc.frequency.value = freq;
+
+        var gain        = ctx.createGain();
+        gain.gain.value = 0.04;
+
+        /* Each tone fades in and out at different rates */
+        var lfo            = ctx.createOscillator();
+        lfo.frequency.value = 0.05 + idx * 0.03;
+        var lfoGain        = ctx.createGain();
+        lfoGain.gain.value = 0.03;
+        lfo.connect(lfoGain);
+        lfoGain.connect(gain.gain);
+        lfo.start();
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        musicNodes.push(osc, lfo);
+    });
+
+    /* Add soft wind noise underneath */
+    var bufSize = ctx.sampleRate * 2;
+    var buffer  = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    var data    = buffer.getChannelData(0);
+    for (var i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    var wind    = ctx.createBufferSource();
+    wind.buffer = buffer;
+    wind.loop   = true;
+    var wFilter       = ctx.createBiquadFilter();
+    wFilter.type      = 'lowpass';
+    wFilter.frequency.value = 400;
+    var wGain        = ctx.createGain();
+    wGain.gain.value = 0.08;
+    wind.connect(wFilter);
+    wFilter.connect(wGain);
+    wGain.connect(ctx.destination);
+    wind.start();
+    musicNodes.push(wind);
+}
+
+/* ── Singing Bowl: resonant sine with long decay, loops ── */
+function playBowl(ctx) {
+    function strike() {
+        var osc       = ctx.createOscillator();
+        osc.type      = 'sine';
+        osc.frequency.value = 432;   /* healing frequency */
+
+        var gain        = ctx.createGain();
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 6);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 6.1);
+        musicNodes.push(osc);
+    }
+    strike();
+    /* Re-strike every 7 seconds while playing */
+    var bowlTimer = setInterval(function() {
+        if (!musicPlaying) { clearInterval(bowlTimer); return; }
+        strike();
+    }, 7000);
+}
+
+var TRACK_LABELS = { rain: 'Rain Sounds', ocean: 'Ocean Waves', forest: 'Forest Calm', bowl: 'Singing Bowl 432Hz' };
+
+function selectTrack(btn) {
+    document.querySelectorAll('.sra-track-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentTrack = btn.dataset.track;
+    if (musicPlaying) {
+        stopAllNodes();
+        startTrack(currentTrack);
+    }
+}
+
+function startTrack(track) {
+    var ctx = getAudioCtx();
+    if (track === 'rain')   playRain(ctx);
+    else if (track === 'ocean')  playOcean(ctx);
+    else if (track === 'forest') playForest(ctx);
+    else if (track === 'bowl')   playBowl(ctx);
+    var label = document.getElementById('musicNowPlaying');
+    if (label) label.textContent = TRACK_LABELS[track] || track;
+}
+
+function toggleMusic(btn) {
+    var bars = document.getElementById('musicBars');
+    var wrap = document.getElementById('musicFrameWrap');
+    if (!musicPlaying) {
+        musicPlaying = true;
+        bars.classList.add('playing');
+        btn.innerHTML = '<i class="bi bi-stop-fill me-1"></i>Stop';
+        if (wrap) wrap.style.display = 'block';
+        startTrack(currentTrack);
+    } else {
+        musicPlaying = false;
+        stopAllNodes();
+        bars.classList.remove('playing');
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Play';
+        if (wrap) wrap.style.display = 'none';
+    }
+}
+
+/* ═══════════════════════════════════════════
+   D. POSITIVE CHALLENGE
+═══════════════════════════════════════════ */
+function toggleChallenge(item) {
+    const done = item.dataset.done === 'true';
+    item.dataset.done = String(!done);
+    const icon = item.querySelector('i');
+    if (!done) {
+        icon.className      = 'bi bi-check-circle-fill me-2';
+        icon.style.color    = '#34d399';
+        item.style.opacity  = '0.5';
+        item.style.textDecoration = 'line-through';
+    } else {
+        icon.className      = 'bi bi-circle me-2';
+        icon.style.color    = '';
+        item.style.opacity  = '';
+        item.style.textDecoration = '';
+    }
+    const all       = document.querySelectorAll('.sra-challenge-item');
+    const doneCount = Array.from(all).filter(function(i) { return i.dataset.done === 'true'; }).length;
+    document.getElementById('challengeBar').style.width = ((doneCount / all.length) * 100) + '%';
+    document.getElementById('challengeCount').textContent = doneCount + ' / ' + all.length + ' completed';
+}
+</script>
+{% endautoescape %}
+{% endif %}
+{% endblock %}

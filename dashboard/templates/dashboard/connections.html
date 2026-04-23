@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Connections — MindMonitor AI{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <span class="section-badge">Network</span>
+            <h2 class="text-white fw-bold mt-1 mb-0">
+                <i class="bi bi-people text-accent me-2"></i>Connections
+            </h2>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light rounded-pill btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ── Incoming Requests ── -->
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h6 class="text-white fw-bold mb-3">
+                    <i class="bi bi-person-plus text-accent me-2"></i>Incoming Requests
+                    {% if pending_in %}
+                    <span class="badge rounded-pill ms-2"
+                          style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);font-size:0.7rem;">
+                        {{ pending_in|length }}
+                    </span>
+                    {% endif %}
+                </h6>
+
+                {% if pending_in %}
+                <div class="row g-3">
+                    {% for conn in pending_in %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+                             style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                            <img src="https://ui-avatars.com/api/?name={{ conn.sender.username }}&background=3b82f6&color=fff&size=64&bold=true"
+                                 class="rounded-circle" width="44" height="44"
+                                 style="border:2px solid rgba(59,130,246,0.3);"
+                                 alt="{{ conn.sender.username }}">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <a href="{% url 'user_profile' conn.sender.id %}"
+                                   class="text-white fw-semibold text-decoration-none d-block"
+                                   style="font-size:0.9rem;">{{ conn.sender.username }}</a>
+                                <span class="text-white-50" style="font-size:0.72rem;">
+                                    {{ conn.created|date:"M d, Y" }}
+                                </span>
+                            </div>
+                            <div class="d-flex gap-1 flex-shrink-0">
+                                <form method="post" action="{% url 'accept_connection' conn.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'connections_page' %}">
+                                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-3"
+                                            title="Accept">
+                                        <i class="bi bi-check-lg"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reject_connection' conn.id %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{% url 'connections_page' %}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3"
+                                            title="Reject">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-white-50 small mb-0">
+                    <i class="bi bi-inbox me-1"></i>No pending requests.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ── Sent Requests ── -->
+        {% if pending_out %}
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h6 class="text-white fw-bold mb-3">
+                    <i class="bi bi-hourglass-split text-warning me-2"></i>Sent Requests
+                </h6>
+                <div class="d-flex flex-wrap gap-3">
+                    {% for conn in pending_out %}
+                    <div class="d-flex align-items-center gap-2 px-3 py-2 rounded-pill"
+                         style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">
+                        <img src="https://ui-avatars.com/api/?name={{ conn.receiver.username }}&background=3b82f6&color=fff&size=32&bold=true"
+                             class="rounded-circle" width="28" height="28" alt="{{ conn.receiver.username }}">
+                        <a href="{% url 'user_profile' conn.receiver.id %}"
+                           class="text-white-50 text-decoration-none small">{{ conn.receiver.username }}</a>
+                        <span class="text-white-50" style="font-size:0.65rem;">Pending</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ── Connected Users ── -->
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h6 class="text-white fw-bold mb-3">
+                    <i class="bi bi-patch-check-fill text-success me-2"></i>Your Connections
+                    <span class="text-white-50 fw-normal ms-1" style="font-size:0.8rem;">
+                        ({{ connected|length }})
+                    </span>
+                </h6>
+
+                {% if connected %}
+                <div class="row g-3">
+                    {% for u in connected %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="d-flex align-items-center gap-3 p-3 rounded-3"
+                             style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);">
+                            <img src="https://ui-avatars.com/api/?name={{ u.username }}&background=3b82f6&color=fff&size=64&bold=true"
+                                 class="rounded-circle" width="44" height="44"
+                                 style="border:2px solid rgba(16,185,129,0.3);"
+                                 alt="{{ u.username }}">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <a href="{% url 'user_profile' u.id %}"
+                                   class="text-white fw-semibold text-decoration-none d-block"
+                                   style="font-size:0.9rem;">{{ u.username }}</a>
+                                <span class="text-success" style="font-size:0.72rem;">
+                                    <i class="bi bi-circle-fill me-1" style="font-size:0.45rem;"></i>Connected
+                                </span>
+                            </div>
+                            <a href="{% url 'private_chat' u.id %}"
+                               class="btn btn-sm btn-primary rounded-pill px-3 flex-shrink-0"
+                               title="Message">
+                                <i class="bi bi-chat-dots-fill"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-white-50 small mb-0">
+                    <i class="bi bi-people me-1"></i>No connections yet.
+                    Browse user profiles to send connection requests.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

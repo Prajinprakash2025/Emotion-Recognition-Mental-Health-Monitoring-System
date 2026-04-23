@@ -1,0 +1,196 @@
+{% extends "analytics/admin_base.html" %}
+{% block title %}Analytics — MindMonitor AI{% endblock %}
+{% block page_title %}<i class="bi bi-bar-chart-line me-2 text-accent"></i>Platform Analytics{% endblock %}
+
+{% block content %}
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <!-- Emotion Distribution -->
+    <div class="col-lg-6">
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <i class="bi bi-bar-chart-fill text-accent me-2"></i>Emotion Distribution (All Time)
+            </div>
+            <div style="position:relative;height:260px;">
+                <canvas id="emotionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- Stress Pie -->
+    <div class="col-lg-3">
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <i class="bi bi-pie-chart-fill text-accent me-2"></i>Stress Breakdown
+            </div>
+            <div style="position:relative;height:200px;">
+                <canvas id="stressChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-center gap-3 mt-3">
+                <span class="adm-legend-dot" style="--c:#f87171;">High <strong class="text-white ms-1">{{ stress_counts.High }}</strong></span>
+                <span class="adm-legend-dot" style="--c:#fb923c;">Med <strong class="text-white ms-1">{{ stress_counts.Medium }}</strong></span>
+                <span class="adm-legend-dot" style="--c:#34d399;">Low <strong class="text-white ms-1">{{ stress_counts.Low }}</strong></span>
+            </div>
+        </div>
+    </div>
+    <!-- DAU -->
+    <div class="col-lg-3">
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <i class="bi bi-graph-up text-accent me-2"></i>Daily Active Users (14d)
+            </div>
+            <div style="position:relative;height:200px;">
+                <canvas id="dauChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- High Risk Users -->
+<div class="adm-card">
+    <div class="adm-card-head d-flex justify-content-between align-items-center">
+        <span>
+            <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>High Risk Users
+            <span class="adm-badge-pill ms-2" style="background:rgba(239,68,68,0.2);color:#f87171;border-color:rgba(239,68,68,0.3);">
+                {{ high_risk|length }}
+            </span>
+        </span>
+        <a href="{% url 'admin_users' %}?filter=high_stress" class="adm-link-sm">View all →</a>
+    </div>
+
+    {% if high_risk %}
+    <div class="table-responsive">
+        <table class="adm-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Stress Level</th>
+                    <th>Last Emotion</th>
+                    <th>Last Activity</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in high_risk %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="https://ui-avatars.com/api/?name={{ row.user.username }}&background=dc2626&color=fff&size=32"
+                                 class="rounded-circle" width="32">
+                            <div>
+                                <div class="text-white small fw-semibold">{{ row.user.username }}</div>
+                                <div class="text-white-50" style="font-size:.72rem;">{{ row.user.email|default:"No email" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="adm-stress-badge adm-stress-high">High</span></td>
+                    <td>
+                        {% if row.last_log %}
+                        <span class="epill-sm
+                            {% if row.last_log.emotion_detected == 'Happy' %}happy
+                            {% elif row.last_log.emotion_detected == 'Sad' %}sad
+                            {% elif row.last_log.emotion_detected == 'Angry' %}angry
+                            {% elif row.last_log.emotion_detected == 'Fear' %}fear
+                            {% else %}neutral{% endif %}">
+                            {{ row.last_log.emotion_detected }}
+                        </span>
+                        {% else %}<span class="text-white-50 small">—</span>{% endif %}
+                    </td>
+                    <td class="text-white-50 small">
+                        {% if row.last_log %}{{ row.last_log.timestamp|date:"M d, H:i" }}{% else %}—{% endif %}
+                    </td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <a href="{% url 'user_profile' user_id=row.user.id %}"
+                               class="adm-action-btn adm-action-view" title="View Profile">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form method="post" action="{% url 'admin_block_user' user_id=row.user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-block" title="Block User">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="adm-empty"><i class="bi bi-shield-check me-2 text-success"></i>No high-risk users detected.</div>
+    {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+new Chart(document.getElementById('emotionChart'), {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels|safe }},
+        datasets: [{
+            label: 'Sessions',
+            data: {{ chart_counts|safe }},
+            backgroundColor: {{ chart_colors|safe }},
+            borderRadius: 6,
+            borderSkipped: false,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Outfit' } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Outfit' } }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+        }
+    }
+});
+
+new Chart(document.getElementById('stressChart'), {
+    type: 'doughnut',
+    data: {
+        labels: ['High', 'Medium', 'Low'],
+        datasets: [{
+            data: [{{ stress_counts.High }}, {{ stress_counts.Medium }}, {{ stress_counts.Low }}],
+            backgroundColor: ['#f87171', '#fb923c', '#34d399'],
+            borderWidth: 0,
+            hoverOffset: 6,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: { legend: { display: false } },
+    }
+});
+
+new Chart(document.getElementById('dauChart'), {
+    type: 'line',
+    data: {
+        labels: {{ dau_labels|safe }},
+        datasets: [{
+            label: 'Active Users',
+            data: {{ dau_counts|safe }},
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.1)',
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#3b82f6',
+            pointRadius: 3,
+        }]
+    },
+    options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Outfit', size: 9 }, maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+            y: { ticks: { color: 'rgba(255,255,255,0.5)', font: { family: 'Outfit' } }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true },
+        }
+    }
+});
+</script>
+{% endblock %}

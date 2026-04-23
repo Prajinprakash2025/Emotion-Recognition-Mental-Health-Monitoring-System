@@ -1,0 +1,151 @@
+{% extends "analytics/admin_base.html" %}
+{% block title %}Reports — MindMonitor AI{% endblock %}
+{% block page_title %}<i class="bi bi-flag me-2 text-accent"></i>User Reports{% endblock %}
+
+{% block content %}
+
+<!-- Filter tabs + export -->
+<div class="adm-toolbar mb-4">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="?filter=all"      class="adm-filter-btn {% if filter == 'all' %}adm-filter-active{% endif %}">All</a>
+        <a href="?filter=pending"  class="adm-filter-btn {% if filter == 'pending' %}adm-filter-active{% endif %}">
+            <i class="bi bi-clock me-1" style="color:#fb923c;"></i>Pending
+            {% if pending_reports_count %}<span class="adm-badge-pill ms-1">{{ pending_reports_count }}</span>{% endif %}
+        </a>
+        <a href="?filter=resolved" class="adm-filter-btn {% if filter == 'resolved' %}adm-filter-active{% endif %}">
+            <i class="bi bi-check-circle me-1" style="color:#34d399;"></i>Resolved
+        </a>
+        <a href="?filter=ignored"  class="adm-filter-btn {% if filter == 'ignored' %}adm-filter-active{% endif %}">
+            <i class="bi bi-x-circle me-1" style="color:#64748b;"></i>Ignored
+        </a>
+    </div>
+    <a href="{% url 'admin_export_reports' %}" class="adm-export-btn">
+        <i class="bi bi-download me-1"></i>Export CSV
+    </a>
+</div>
+
+<!-- Table -->
+<div class="adm-card">
+    <div class="table-responsive">
+        <table class="adm-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Reporter</th>
+                    <th>Reported User</th>
+                    <th>Reason</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in page_obj %}
+                <tr>
+                    <td class="text-white-50 small">#{{ report.id }}</td>
+
+                    <!-- Reporter -->
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="https://ui-avatars.com/api/?name={{ report.reporter.username }}&background=6d28d9&color=fff&size=28"
+                                 class="rounded-circle" width="28">
+                            <span class="text-white small">{{ report.reporter.username }}</span>
+                        </div>
+                    </td>
+
+                    <!-- Reported -->
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="https://ui-avatars.com/api/?name={{ report.reported_user.username }}&background=dc2626&color=fff&size=28"
+                                 class="rounded-circle" width="28">
+                            <a href="{% url 'user_profile' user_id=report.reported_user.id %}"
+                               class="text-white small text-decoration-none adm-link-hover">
+                                {{ report.reported_user.username }}
+                            </a>
+                        </div>
+                    </td>
+
+                    <!-- Reason -->
+                    <td>
+                        <span class="text-white-50 small adm-reason-cell" title="{{ report.reason }}">
+                            {{ report.reason|truncatechars:60 }}
+                        </span>
+                    </td>
+
+                    <!-- Date -->
+                    <td class="text-white-50 small">{{ report.created_at|date:"M d, Y H:i" }}</td>
+
+                    <!-- Status -->
+                    <td>
+                        {% if report.status == 'pending' %}
+                        <span class="adm-report-badge adm-report-pending">Pending</span>
+                        {% elif report.status == 'resolved' %}
+                        <span class="adm-report-badge adm-report-resolved">Resolved</span>
+                        {% else %}
+                        <span class="adm-report-badge adm-report-ignored">Ignored</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            {% if report.status == 'pending' %}
+                            <form method="post" action="{% url 'admin_resolve_report' report_id=report.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-resolve" title="Mark Resolved">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'admin_block_from_report' report_id=report.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-block" title="Block Reported User"
+                                        onclick="return confirm('Block {{ report.reported_user.username }}?')">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'admin_ignore_report' report_id=report.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-ignore" title="Ignore">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <span class="text-white-50 small">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="adm-empty">No reports found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="adm-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&filter={{ filter }}" class="rp-page-btn">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="rp-page-btn rp-page-active">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}&filter={{ filter }}" class="rp-page-btn">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&filter={{ filter }}" class="rp-page-btn">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

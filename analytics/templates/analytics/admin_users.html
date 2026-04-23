@@ -1,0 +1,154 @@
+{% extends "analytics/admin_base.html" %}
+{% block title %}User Management — MindMonitor AI{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2 text-accent"></i>User Management{% endblock %}
+
+{% block content %}
+
+<!-- Toolbar -->
+<div class="adm-toolbar mb-4">
+    <form method="get" class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+        <div class="adm-search-wrap">
+            <i class="bi bi-search adm-search-icon"></i>
+            <input type="text" name="q" value="{{ q }}" placeholder="Search username or email…" class="adm-search-input">
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="?filter=all{% if q %}&q={{ q }}{% endif %}"
+               class="adm-filter-btn {% if filter == 'all' %}adm-filter-active{% endif %}">All</a>
+            <a href="?filter=active{% if q %}&q={{ q }}{% endif %}"
+               class="adm-filter-btn {% if filter == 'active' %}adm-filter-active{% endif %}">
+                <i class="bi bi-circle-fill me-1" style="color:#34d399;font-size:.5rem;"></i>Active (24h)
+            </a>
+            <a href="?filter=high_stress{% if q %}&q={{ q }}{% endif %}"
+               class="adm-filter-btn {% if filter == 'high_stress' %}adm-filter-active{% endif %}">
+                <i class="bi bi-exclamation-triangle me-1 text-danger"></i>High Stress
+            </a>
+            <a href="?filter=blocked{% if q %}&q={{ q }}{% endif %}"
+               class="adm-filter-btn {% if filter == 'blocked' %}adm-filter-active{% endif %}">
+                <i class="bi bi-slash-circle me-1 text-danger"></i>Blocked
+            </a>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">Search</button>
+    </form>
+    <a href="{% url 'admin_export_users' %}" class="adm-export-btn">
+        <i class="bi bi-download me-1"></i>Export CSV
+    </a>
+</div>
+
+<!-- Table -->
+<div class="adm-card">
+    <div class="table-responsive">
+        <table class="adm-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Status</th>
+                    <th>Stress</th>
+                    <th>Last Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+                <tr>
+                    <!-- User -->
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="https://ui-avatars.com/api/?name={{ row.user.username }}&background=3b82f6&color=fff&size=36"
+                                 class="rounded-circle" width="36" height="36">
+                            <div>
+                                <div class="text-white small fw-semibold">{{ row.user.username }}</div>
+                                <div class="text-white-50" style="font-size:.72rem;">Joined {{ row.user.date_joined|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <!-- Email -->
+                    <td class="text-white-50 small">{{ row.user.email|default:"—" }}</td>
+                    <!-- Status -->
+                    <td>
+                        {% if row.profile.is_blocked %}
+                        <span class="adm-status-badge adm-status-blocked"><i class="bi bi-slash-circle me-1"></i>Blocked</span>
+                        {% else %}
+                        <span class="adm-status-badge adm-status-active"><i class="bi bi-circle-fill me-1"></i>Active</span>
+                        {% endif %}
+                    </td>
+                    <!-- Stress -->
+                    <td>
+                        {% if row.stress_level == 'High' %}
+                        <span class="adm-stress-badge adm-stress-high">High</span>
+                        {% elif row.stress_level == 'Medium' %}
+                        <span class="adm-stress-badge adm-stress-medium">Medium</span>
+                        {% else %}
+                        <span class="adm-stress-badge adm-stress-low">Low</span>
+                        {% endif %}
+                    </td>
+                    <!-- Last Active -->
+                    <td class="text-white-50 small">
+                        {% if row.last_active %}{{ row.last_active|date:"M d, H:i" }}{% else %}Never{% endif %}
+                    </td>
+                    <!-- Actions -->
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <a href="{% url 'user_profile' user_id=row.user.id %}"
+                               class="adm-action-btn adm-action-view" title="View Profile">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if row.profile.is_blocked %}
+                            <form method="post" action="{% url 'admin_unblock_user' user_id=row.user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-unblock" title="Unblock">
+                                    <i class="bi bi-unlock"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{% url 'admin_block_user' user_id=row.user.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit" class="adm-action-btn adm-action-block" title="Block">
+                                    <i class="bi bi-slash-circle"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <form method="post" action="{% url 'admin_delete_user' user_id=row.user.id %}"
+                                  onsubmit="return confirm('Permanently delete {{ row.user.username }}?')">
+                                {% csrf_token %}
+                                <button type="submit" class="adm-action-btn adm-action-delete" title="Delete">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="adm-empty">No users found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="adm-pagination">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&filter={{ filter }}&q={{ q }}" class="rp-page-btn">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <span class="rp-page-btn rp-page-active">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+        <a href="?page={{ num }}&filter={{ filter }}&q={{ q }}" class="rp-page-btn">{{ num }}</a>
+        {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&filter={{ filter }}&q={{ q }}" class="rp-page-btn">
+            <i class="bi bi-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

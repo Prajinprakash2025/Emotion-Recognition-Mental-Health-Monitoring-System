@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Emotion Reports — MindMonitor AI{% endblock %}
+{% block nav_reports %}active{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+
+    <!-- ── A. Header ─────────────────────────────────────────── -->
+    <div class="rp-header d-flex flex-wrap justify-content-between align-items-start gap-3 mb-5">
+        <div>
+            <span class="section-badge mb-2 d-inline-block">Analytics</span>
+            <h2 class="rp-title mb-1">
+                <i class="bi bi-bar-chart-line text-accent me-2"></i>Emotion Reports
+            </h2>
+            <p class="rp-subtitle">
+                A full breakdown of your detected emotions, confidence scores, and stress indicators across all sessions.
+            </p>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light rounded-pill px-4 align-self-start">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <!-- ── B. Summary Cards ───────────────────────────────────── -->
+    <div class="row g-3 mb-5">
+
+        <div class="col-6 col-lg-3">
+            <div class="rp-stat-card glass-card p-4 h-100">
+                <div class="rp-stat-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div class="rp-stat-value">{{ total }}</div>
+                <div class="rp-stat-label">Total Records</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="rp-stat-card glass-card p-4 h-100">
+                <div class="rp-stat-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;">
+                    <i class="bi bi-graph-up"></i>
+                </div>
+                <div class="rp-stat-value">
+                    {% if dominant_emotion != 'N/A' %}
+                    <span class="epill-sm {{ dominant_meta.pill }} fs-6">{{ dominant_emotion }}</span>
+                    {% else %}—{% endif %}
+                </div>
+                <div class="rp-stat-label">Dominant Emotion</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="rp-stat-card glass-card p-4 h-100">
+                <div class="rp-stat-icon
+                    {% if avg_stress_label == 'High' %}rp-icon-high
+                    {% elif avg_stress_label == 'Medium' %}rp-icon-medium
+                    {% else %}rp-icon-low{% endif %}">
+                    <i class="bi bi-activity"></i>
+                </div>
+                <div class="rp-stat-value">
+                    {% if avg_stress_label == 'High' %}
+                        <span class="rp-stress-badge rp-stress-high">{{ avg_stress_label }}</span>
+                    {% elif avg_stress_label == 'Medium' %}
+                        <span class="rp-stress-badge rp-stress-medium">{{ avg_stress_label }}</span>
+                    {% elif avg_stress_label == 'Low' %}
+                        <span class="rp-stress-badge rp-stress-low">{{ avg_stress_label }}</span>
+                    {% else %}—{% endif %}
+                </div>
+                <div class="rp-stat-label">Avg. Stress Level</div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="rp-stat-card glass-card p-4 h-100">
+                <div class="rp-stat-icon" style="background:rgba(16,185,129,0.15);color:#34d399;">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="rp-stat-value">
+                    {% if last_emotion != 'N/A' %}
+                    <span class="epill-sm {{ last_meta.pill }} fs-6">{{ last_emotion }}</span>
+                    {% else %}—{% endif %}
+                </div>
+                <div class="rp-stat-label">Last Recorded</div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ── C. Emotion Distribution ───────────────────────────── -->
+    {% if emotion_distribution %}
+    <div class="glass-card p-4 mb-5">
+        <div class="d-flex align-items-center gap-2 mb-4">
+            <div class="rp-section-icon"><i class="bi bi-pie-chart"></i></div>
+            <h5 class="text-white fw-bold mb-0">Emotion Distribution</h5>
+        </div>
+
+        <div class="row g-4 align-items-center">
+
+            <!-- Progress bars -->
+            <div class="col-lg-7">
+                {% for item in emotion_distribution %}
+                <div class="rp-dist-row mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="d-flex align-items-center gap-2">
+                            <i class="bi {{ item.icon }}" style="color:{{ item.bar_color }};font-size:1rem;"></i>
+                            <span class="text-white fw-500 small">{{ item.emotion }}</span>
+                        </span>
+                        <span class="rp-dist-meta">
+                            <span class="text-white fw-bold">{{ item.pct }}%</span>
+                            <span class="text-white-50 ms-1 small">({{ item.count }})</span>
+                        </span>
+                    </div>
+                    <div class="rp-dist-bar-track">
+                        <div class="rp-dist-bar-fill" style="width:{{ item.pct }}%;background:{{ item.bar_color }};"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Doughnut chart -->
+            <div class="col-lg-5 d-flex justify-content-center">
+                <div style="max-width:240px;width:100%;">
+                    <canvas id="emotionDonut"></canvas>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── D. Emotion Logs Table ──────────────────────────────── -->
+    <div class="glass-card p-4">
+
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rp-section-icon"><i class="bi bi-table"></i></div>
+                <h5 class="text-white fw-bold mb-0">Session Logs</h5>
+            </div>
+            {% if total %}
+            <span class="rp-record-count">{{ total }} record{{ total|pluralize }}</span>
+            {% endif %}
+        </div>
+
+        <div class="table-responsive">
+            <table class="table rp-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-calendar3 me-1 text-accent"></i>Date</th>
+                        <th><i class="bi bi-clock me-1 text-accent"></i>Time</th>
+                        <th><i class="bi bi-emoji-smile me-1 text-accent"></i>Emotion</th>
+                        <th><i class="bi bi-speedometer2 me-1 text-accent"></i>Confidence</th>
+                        <th><i class="bi bi-activity me-1 text-accent"></i>Stress</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in annotated_logs %}
+                    {% with log=item.log %}
+                    <tr class="rp-row">
+                        <td class="rp-cell-date">{{ log.timestamp|date:"M d, Y" }}</td>
+                        <td class="rp-cell-time">{{ log.timestamp|date:"H:i:s" }}</td>
+                        <td>
+                            <span class="epill-sm {{ item.pill_class }}">
+                                <i class="bi {{ item.icon }} me-1"></i>{{ log.emotion_detected }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="rp-conf-track">
+                                    <div class="rp-conf-fill
+                                        {% if log.confidence_score >= 75 %}rp-conf-high
+                                        {% elif log.confidence_score >= 45 %}rp-conf-med
+                                        {% else %}rp-conf-low{% endif %}"
+                                        style="width:{{ log.confidence_score|floatformat:0 }}%;">
+                                    </div>
+                                </div>
+                                <span class="rp-conf-label">{{ log.confidence_score|floatformat:1 }}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.stress_level == 'High' %}
+                                <span class="rp-stress-badge rp-stress-high">
+                                    <i class="bi bi-arrow-up-circle-fill me-1"></i>High
+                                </span>
+                            {% elif item.stress_level == 'Medium' %}
+                                <span class="rp-stress-badge rp-stress-medium">
+                                    <i class="bi bi-dash-circle-fill me-1"></i>Medium
+                                </span>
+                            {% else %}
+                                <span class="rp-stress-badge rp-stress-low">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Low
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endwith %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5">
+                            <i class="bi bi-inbox fs-1 text-white-50 d-block mb-3"></i>
+                            <p class="text-white-50 mb-3">No sessions recorded yet.</p>
+                            <a href="{% url 'dashboard' %}" class="btn btn-primary rounded-pill px-4">
+                                <i class="bi bi-play-fill me-1"></i>Start a Session
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if logs.has_other_pages %}
+        <nav class="mt-4" aria-label="Log pagination">
+            <ul class="pagination justify-content-center gap-1 mb-0">
+
+                {% if logs.has_previous %}
+                <li class="page-item">
+                    <a class="rp-page-btn" href="?page={{ logs.previous_page_number }}" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="rp-page-btn rp-page-disabled"><i class="bi bi-chevron-left"></i></span>
+                </li>
+                {% endif %}
+
+                {% for num in logs.paginator.page_range %}
+                    {% if logs.number == num %}
+                    <li class="page-item">
+                        <span class="rp-page-btn rp-page-active">{{ num }}</span>
+                    </li>
+                    {% elif num >= logs.number|add:"-2" and num <= logs.number|add:"2" %}
+                    <li class="page-item">
+                        <a class="rp-page-btn" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="rp-page-btn" href="?page={{ logs.next_page_number }}" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="rp-page-btn rp-page-disabled"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                {% endif %}
+
+            </ul>
+        </nav>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if emotion_distribution %}
+<script>
+(function () {
+    const labels  = [{% for item in emotion_distribution %}"{{ item.emotion }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+    const data    = [{% for item in emotion_distribution %}{{ item.pct }}{% if not forloop.last %},{% endif %}{% endfor %}];
+    const colors  = [{% for item in emotion_distribution %}"{{ item.bar_color }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+
+    new Chart(document.getElementById('emotionDonut'), {
+        type: 'doughnut',
+        data: {
+            labels,
+            datasets: [{
+                data,
+                backgroundColor: colors.map(c => c + '33'),
+                borderColor: colors,
+                borderWidth: 2,
+                hoverOffset: 6,
+            }]
+        },
+        options: {
+            cutout: '68%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#94a3b8',
+                        font: { size: 11, family: 'Outfit' },
+                        padding: 12,
+                        boxWidth: 12,
+                        boxHeight: 12,
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ` ${ctx.label}: ${ctx.parsed}%`
+                    }
+                }
+            }
+        }
+    });
+})();
+</script>
+{% endif %}
+{% endblock %}

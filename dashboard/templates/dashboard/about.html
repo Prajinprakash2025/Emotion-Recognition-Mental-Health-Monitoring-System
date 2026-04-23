@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}About — MindMonitor AI{% endblock %}
+{% block nav_about %}active{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+
+    <!-- Page Header -->
+    <div class="page-header text-center mb-5">
+        <span class="section-badge">About Us</span>
+        <h1 class="section-title mt-2">What is MindMonitor AI?</h1>
+        <p class="text-white-50 mt-3 mx-auto" style="max-width:600px;">
+            A real-time emotion recognition system built with deep learning to help individuals understand and track their mental health through facial expression analysis.
+        </p>
+    </div>
+
+    <!-- Mission -->
+    <div class="row align-items-center g-5 mb-5">
+        <div class="col-lg-6">
+            <div class="glass-card p-5 h-100">
+                <span class="section-badge mb-3 d-inline-block">Our Mission</span>
+                <h3 class="text-white fw-bold mb-3">Making Mental Health Visible</h3>
+                <p class="text-white-50">
+                    Mental health is often invisible. MindMonitor AI bridges that gap by using computer vision and AI to surface emotional patterns that people may not even notice themselves.
+                </p>
+                <p class="text-white-50 mb-0">
+                    By tracking emotions over time, users gain actionable insights into their stress levels, mood trends, and overall emotional wellbeing — all from the privacy of their own device.
+                </p>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="glass-card p-4 text-center">
+                        <div class="stat-big text-accent">7</div>
+                        <div class="text-white-50 small">Emotions Detected</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="glass-card p-4 text-center">
+                        <div class="stat-big text-success">94%</div>
+                        <div class="text-white-50 small">Model Accuracy</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="glass-card p-4 text-center">
+                        <div class="stat-big text-warning">0.3s</div>
+                        <div class="text-white-50 small">Detection Speed</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="glass-card p-4 text-center">
+                        <div class="stat-big" style="color:#a78bfa;">100%</div>
+                        <div class="text-white-50 small">Local Processing</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technology Stack -->
+    <div class="section-header text-center mb-4">
+        <span class="section-badge">Technology</span>
+        <h2 class="section-title mt-2">Built With</h2>
+    </div>
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <div class="feature-icon-wrap mb-3" style="background:rgba(59,130,246,0.15);color:#3b82f6;">
+                    <i class="bi bi-cpu"></i>
+                </div>
+                <h6 class="text-white fw-bold">TensorFlow / Keras</h6>
+                <p class="text-white-50 small mb-0">Lightweight CNN trained on the FER-2013 dataset with 35,000+ facial images across 7 emotion classes.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <div class="feature-icon-wrap mb-3" style="background:rgba(16,185,129,0.15);color:#10b981;">
+                    <i class="bi bi-camera"></i>
+                </div>
+                <h6 class="text-white fw-bold">OpenCV</h6>
+                <p class="text-white-50 small mb-0">Haar Cascade face detection to locate and crop faces from the live webcam stream before AI inference.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="glass-card p-4 h-100">
+                <div class="feature-icon-wrap mb-3" style="background:rgba(245,158,11,0.15);color:#f59e0b;">
+                    <i class="bi bi-server"></i>
+                </div>
+                <h6 class="text-white fw-bold">Django</h6>
+                <p class="text-white-50 small mb-0">Python web framework powering the backend, user authentication, database logging, and REST API endpoints.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emotions Detected -->
+    <div class="glass-card p-5 mb-5">
+        <div class="text-center mb-4">
+            <span class="section-badge">Emotion Classes</span>
+            <h3 class="text-white fw-bold mt-2">7 Emotions Recognized</h3>
+        </div>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            <div class="emotion-about-pill happy"><i class="bi bi-emoji-smile me-2"></i>Happy</div>
+            <div class="emotion-about-pill sad"><i class="bi bi-emoji-frown me-2"></i>Sad</div>
+            <div class="emotion-about-pill angry"><i class="bi bi-emoji-angry me-2"></i>Angry</div>
+            <div class="emotion-about-pill fear"><i class="bi bi-emoji-dizzy me-2"></i>Fear</div>
+            <div class="emotion-about-pill surprise"><i class="bi bi-emoji-surprise me-2"></i>Surprise</div>
+            <div class="emotion-about-pill neutral"><i class="bi bi-emoji-neutral me-2"></i>Neutral</div>
+            <div class="emotion-about-pill disgust"><i class="bi bi-emoji-expressionless me-2"></i>Disgust</div>
+        </div>
+    </div>
+
+    <!-- Privacy -->
+    <div class="glass-card p-5 text-center">
+        <div class="feature-icon-wrap mx-auto mb-3" style="background:rgba(245,158,11,0.15);color:#f59e0b;width:60px;height:60px;font-size:1.8rem;">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <h3 class="text-white fw-bold">Your Privacy is Our Priority</h3>
+        <p class="text-white-50 mx-auto mt-3" style="max-width:550px;">
+            All video processing happens entirely on your local machine. No video frames are ever transmitted, stored, or shared. Only the resulting emotion label and timestamp are saved to your personal history.
+        </p>
+        <a href="{% url 'signup' %}" class="btn btn-primary rounded-pill px-5 mt-3">Get Started</a>
+    </div>
+
+</div>
+
+<!-- Footer -->
+<footer class="site-footer mt-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="brand-icon brand-icon-sm"><i class="bi bi-activity"></i></div>
+                    <span class="text-white fw-bold">Mind<span class="text-accent">Monitor</span></span>
+                </div>
+                <p class="text-white-50 small mb-0">AI-powered emotion recognition for mental health awareness.</p>
+            </div>
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <div class="d-flex justify-content-center gap-4">
+                    <a href="{% url 'home' %}" class="footer-link">Home</a>
+                    <a href="{% url 'about' %}" class="footer-link">About</a>
+                    <a href="{% url 'contact' %}" class="footer-link">Contact</a>
+                    <a href="{% url 'help_page' %}" class="footer-link">Help</a>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <p class="text-white-50 small mb-0">&copy; 2025 MindMonitor AI. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}

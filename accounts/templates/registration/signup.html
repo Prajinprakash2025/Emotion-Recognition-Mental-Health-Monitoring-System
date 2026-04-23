@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up — MindMonitor AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}?v=3.0">
+</head>
+<body class="dark-theme">
+
+<div class="auth-page py-5">
+    <div class="glass-card" style="width:100%;max-width:520px;padding:40px;">
+
+        <!-- Header -->
+        <div class="text-center mb-4">
+            <div class="brand-icon mx-auto mb-3"><i class="bi bi-activity"></i></div>
+            <h3 class="text-white fw-bold">Create Account</h3>
+            <p class="text-white-50 small">Join MindMonitor AI — takes less than a minute.</p>
+        </div>
+
+        <form method="post" id="signupForm">
+            {% csrf_token %}
+
+            <!-- Account Info -->
+            <p class="text-white-50 small text-uppercase fw-bold mb-2" style="letter-spacing:0.08em;">Account Info</p>
+            <div class="mb-3">
+                <label class="text-white-50 small mb-1">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="mb-3">
+                <label class="text-white-50 small mb-1">{{ form.email.label }} <span class="text-white-50" style="font-size:0.72rem;">(optional)</span></label>
+                {{ form.email }}
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="text-white-50 small mb-1">{{ form.password1.label }}</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<div class="text-danger small mt-1">{{ form.password1.errors.0 }}</div>{% endif %}
+                </div>
+                <div class="col-6">
+                    <label class="text-white-50 small mb-1">{{ form.password2.label }}</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}<div class="text-danger small mt-1">{{ form.password2.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <!-- Personal Info -->
+            <p class="text-white-50 small text-uppercase fw-bold mb-2 mt-4" style="letter-spacing:0.08em;">
+                Personal Info <span class="text-white-50 fw-normal" style="font-size:0.72rem;text-transform:none;">(optional — helps improve emotion insights)</span>
+            </p>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label class="text-white-50 small mb-1">{{ form.gender.label }}</label>
+                    {{ form.gender }}
+                </div>
+                <div class="col-md-3">
+                    <label class="text-white-50 small mb-1">{{ form.age.label }}</label>
+                    {{ form.age }}
+                </div>
+                <div class="col-md-5">
+                    <label class="text-white-50 small mb-1">{{ form.city.label }}</label>
+                    {{ form.city }}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 rounded-pill fw-bold">
+                <i class="bi bi-person-plus me-2"></i>Create Account
+            </button>
+        </form>
+
+        <div class="text-center mt-4">
+            <span class="text-white-50 small">Already have an account? </span>
+            <a href="{% url 'login' %}" class="text-accent text-decoration-none small fw-bold">Sign In</a>
+        </div>
+        <div class="text-center mt-2">
+            <a href="{% url 'home' %}" class="text-white-50 small text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="bg-orb orb-1"></div>
+<div class="bg-orb orb-2"></div>
+<div class="bg-orb orb-3"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.querySelectorAll('#signupForm input, #signupForm select').forEach(el => {
+        el.classList.add('glass-input');
+        if (el.tagName === 'INPUT') el.classList.add('form-control');
+        if (el.tagName === 'SELECT') el.classList.add('form-select');
+    });
+</script>
+</body>
+</html>

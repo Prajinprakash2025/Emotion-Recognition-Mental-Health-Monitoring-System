@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}MindMonitor AI — Emotion Recognition{% endblock %}
+{% block nav_home %}active{% endblock %}
+
+{% block content %}
+
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <div class="col-lg-6 hero-text">
+                <div class="hero-badge mb-4">
+                    <i class="bi bi-stars me-2"></i>AI-Powered Mental Health Monitoring
+                </div>
+                <h1 class="hero-title">
+                    Understand Your <br>
+                    <span class="gradient-text">Emotions</span> in <br>
+                    Real Time
+                </h1>
+                <p class="hero-desc">
+                    MindMonitor AI uses deep learning to detect and track your facial emotions live via webcam — helping you understand your mental state and emotional patterns over time.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mt-5">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary btn-hero">
+                        <i class="bi bi-grid me-2"></i>Open Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-hero">
+                        <i class="bi bi-play-fill me-2"></i>Get Started Free
+                    </a>
+                    <a href="{% url 'login' %}" class="btn btn-outline-light btn-hero">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Emotion Pills -->
+                <div class="emotion-pills mt-5">
+                    <span class="epill happy"><i class="bi bi-emoji-smile me-1"></i>Happy</span>
+                    <span class="epill sad"><i class="bi bi-emoji-frown me-1"></i>Sad</span>
+                    <span class="epill angry"><i class="bi bi-emoji-angry me-1"></i>Angry</span>
+                    <span class="epill fear"><i class="bi bi-emoji-dizzy me-1"></i>Fear</span>
+                    <span class="epill surprise"><i class="bi bi-emoji-surprise me-1"></i>Surprise</span>
+                    <span class="epill neutral"><i class="bi bi-emoji-neutral me-1"></i>Neutral</span>
+                </div>
+            </div>
+
+            <div class="col-lg-6 d-flex justify-content-center mt-5 mt-lg-0">
+                <div class="hero-visual">
+                    <div class="face-scan-box">
+                        <div class="scan-corner tl"></div>
+                        <div class="scan-corner tr"></div>
+                        <div class="scan-corner bl"></div>
+                        <div class="scan-corner br"></div>
+                        <div class="scan-pulse"></div>
+                        <i class="bi bi-person-bounding-box face-icon"></i>
+                        <div class="scan-line-hero"></div>
+                        <div class="emotion-tag">
+                            <span class="status-dot-green"></span>
+                            Detecting: <strong>Happy</strong>
+                        </div>
+                    </div>
+                    <div class="floating-stat stat-1">
+                        <i class="bi bi-graph-up-arrow text-success"></i>
+                        <div>
+                            <div class="stat-val">94%</div>
+                            <div class="stat-lbl">Accuracy</div>
+                        </div>
+                    </div>
+                    <div class="floating-stat stat-2">
+                        <i class="bi bi-lightning-charge text-warning"></i>
+                        <div>
+                            <div class="stat-val">Real-Time</div>
+                            <div class="stat-lbl">Detection</div>
+                        </div>
+                    </div>
+                    <div class="floating-stat stat-3">
+                        <i class="bi bi-shield-check text-accent"></i>
+                        <div>
+                            <div class="stat-val">Private</div>
+                            <div class="stat-lbl">Local Only</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works -->
+<section class="section-pad">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <span class="section-badge">How It Works</span>
+            <h2 class="section-title">Three Steps to Emotional Insight</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="step-card glass-card h-100">
+                    <div class="step-num">01</div>
+                    <div class="step-icon"><i class="bi bi-camera-video-fill"></i></div>
+                    <h5 class="text-white fw-bold mt-3">Activate Camera</h5>
+                    <p class="text-white-50 small">Allow webcam access and click Start Monitoring. Your video is processed locally — never uploaded.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card glass-card h-100">
+                    <div class="step-num">02</div>
+                    <div class="step-icon"><i class="bi bi-cpu-fill"></i></div>
+                    <h5 class="text-white fw-bold mt-3">AI Analyzes Face</h5>
+                    <p class="text-white-50 small">Our CNN model detects facial landmarks and classifies your expression into one of 7 emotions every 0.3 seconds.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="step-card glass-card h-100">
+                    <div class="step-num">03</div>
+                    <div class="step-icon"><i class="bi bi-bar-chart-line-fill"></i></div>
+                    <h5 class="text-white fw-bold mt-3">Track Your Trends</h5>
+                    <p class="text-white-50 small">View real-time charts and historical reports to understand your emotional patterns and mental health over time.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features -->
+<section class="section-pad">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <span class="section-badge">Features</span>
+            <h2 class="section-title">Everything You Need</h2>
+        </div>
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card text-center h-100">
+                    <div class="feature-icon-wrap" style="background: rgba(59,130,246,0.15); color:#3b82f6;">
+                        <i class="bi bi-camera-video"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3">Live Detection</h6>
+                    <p class="text-white-50 small">Real-time emotion recognition at 30 FPS with instant overlay.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card text-center h-100">
+                    <div class="feature-icon-wrap" style="background: rgba(16,185,129,0.15); color:#10b981;">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3">Trend Reports</h6>
+                    <p class="text-white-50 small">Visual charts showing stress and happiness levels over time.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card text-center h-100">
+                    <div class="feature-icon-wrap" style="background: rgba(245,158,11,0.15); color:#f59e0b;">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3">100% Private</h6>
+                    <p class="text-white-50 small">All processing happens on your device. No video is ever stored.</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card glass-card text-center h-100">
+                    <div class="feature-icon-wrap" style="background: rgba(167,139,250,0.15); color:#a78bfa;">
+                        <i class="bi bi-lightbulb"></i>
+                    </div>
+                    <h6 class="text-white fw-bold mt-3">Smart Insights</h6>
+                    <p class="text-white-50 small">Personalized suggestions based on your detected emotional state.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA -->
+<section class="section-pad">
+    <div class="container">
+        <div class="cta-card glass-card text-center p-5">
+            <h2 class="text-white fw-bold mb-3">Ready to Monitor Your Mind?</h2>
+            <p class="text-white-50 mb-4">Join MindMonitor AI and start understanding your emotions today.</p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'dashboard' %}" class="btn btn-primary btn-hero">Go to Dashboard <i class="bi bi-arrow-right ms-2"></i></a>
+            {% else %}
+            <a href="{% url 'signup' %}" class="btn btn-primary btn-hero">Create Free Account <i class="bi bi-arrow-right ms-2"></i></a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <div class="brand-icon brand-icon-sm"><i class="bi bi-activity"></i></div>
+                    <span class="text-white fw-bold">Mind<span class="text-accent">Monitor</span></span>
+                </div>
+                <p class="text-white-50 small mb-0">AI-powered emotion recognition for mental health awareness.</p>
+            </div>
+            <div class="col-md-4 text-center my-3 my-md-0">
+                <div class="d-flex justify-content-center gap-4">
+                    <a href="{% url 'home' %}" class="footer-link">Home</a>
+                    <a href="{% url 'about' %}" class="footer-link">About</a>
+                    <a href="{% url 'contact' %}" class="footer-link">Contact</a>
+                    <a href="{% url 'help_page' %}" class="footer-link">Help</a>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <p class="text-white-50 small mb-0">&copy; 2025 MindMonitor AI. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+{% endblock %}

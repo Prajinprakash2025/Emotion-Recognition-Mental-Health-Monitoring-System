@@ -1,0 +1,531 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ viewed_user.username }} — MindMonitor AI{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+
+    <!-- ── Page Header ─────────────────────────────────────── -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="section-badge">User Profile</span>
+            <h2 class="text-white fw-bold mt-1 mb-0">
+                <i class="bi bi-person-circle text-accent me-2"></i>{{ viewed_user.username }}
+            </h2>
+        </div>
+        <a href="javascript:history.back()" class="btn btn-outline-light rounded-pill btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+
+    <!-- ── Connection Status Banner ────────────────────────── -->
+    {% if is_connected %}
+    <div class="up-conn-banner up-conn-accepted mb-4">
+        <i class="bi bi-patch-check-fill me-2"></i>
+        You and <strong>{{ viewed_user.username }}</strong> are connected — full profile visible.
+    </div>
+    {% elif is_pending_out %}
+    <div class="up-conn-banner up-conn-pending mb-4">
+        <i class="bi bi-hourglass-split me-2"></i>
+        Connection request sent to <strong>{{ viewed_user.username }}</strong>. Waiting for acceptance.
+    </div>
+    {% elif is_pending_in %}
+    <div class="up-conn-banner up-conn-incoming mb-4">
+        <i class="bi bi-person-plus me-2"></i>
+        <strong>{{ viewed_user.username }}</strong> sent you a connection request.
+        <div class="d-flex gap-2 mt-2">
+            <form method="post" action="{% url 'accept_connection' conn.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn btn-success btn-sm rounded-pill px-3 fw-bold">
+                    <i class="bi bi-check-lg me-1"></i>Accept
+                </button>
+            </form>
+            <form method="post" action="{% url 'reject_connection' conn.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+                    <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+            </form>
+        </div>
+    </div>
+    {% else %}
+    <div class="up-conn-banner up-conn-locked mb-4">
+        <i class="bi bi-lock me-2"></i>
+        Private sections are hidden. Connect with <strong>{{ viewed_user.username }}</strong> to unlock full profile.
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+
+        <!-- ── Left Column ─────────────────────────────────── -->
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <!-- Identity Card (always public) -->
+            <div class="glass-card p-4 text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="https://ui-avatars.com/api/?name={{ viewed_user.username }}&background=3b82f6&color=fff&size=128&bold=true"
+                         class="rounded-circle up-avatar" alt="{{ viewed_user.username }}">
+                    {% if viewed_user.is_superuser %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger border border-dark">Admin</span>
+                    {% else %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-dark">User</span>
+                    {% endif %}
+                </div>
+
+                <h4 class="text-white fw-bold mb-1">{{ viewed_user.username }}</h4>
+                <p class="text-white-50 small mb-1">
+                    <i class="bi bi-calendar3 me-1"></i>Member since {{ viewed_user.date_joined|date:"M Y" }}
+                </p>
+                {% if last_active_public %}
+                <p class="text-white-50 small mb-3" style="font-size:0.75rem;">
+                    <i class="bi bi-clock me-1"></i>Last active {{ last_active_public|date:"M d, Y" }}
+                </p>
+                {% endif %}
+
+                <!-- Support preference badge (public) -->
+                {% if profile.support_preference %}
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                     style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                    <i class="bi {{ profile.get_support_icon }} small"
+                       style="color:{{ profile.get_support_color }};"></i>
+                    <span class="small" style="color:{{ profile.get_support_color }};">
+                        {{ profile.get_support_display_label }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Public stat: session count -->
+                <div class="up-mini-stat mb-4">
+                    <div class="up-mini-val">{{ total_sessions }}</div>
+                    <div class="up-mini-lbl">Total Sessions</div>
+                </div>
+
+                <!-- ── Connection Actions ── -->
+                <div class="d-flex flex-column gap-2">
+                    {% if is_connected %}
+                        <div class="d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-pill"
+                             style="background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);">
+                            <i class="bi bi-patch-check-fill text-success"></i>
+                            <span class="text-success fw-semibold small">Connected</span>
+                        </div>
+                        <a href="{% url 'private_chat' viewed_user.id %}"
+                           class="btn btn-primary rounded-pill w-100 fw-bold">
+                            <i class="bi bi-chat-dots-fill me-2"></i>Send Message
+                        </a>
+                        <form method="post" action="{% url 'remove_connection' viewed_user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger rounded-pill w-100 btn-sm">
+                                <i class="bi bi-person-dash me-1"></i>Remove Connection
+                            </button>
+                        </form>
+
+                    {% elif is_pending_out %}
+                        <button class="btn rounded-pill w-100 fw-semibold" disabled
+                                style="background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);color:#94a3b8;">
+                            <i class="bi bi-hourglass-split me-2"></i>Request Sent
+                        </button>
+                        <button class="btn btn-outline-light rounded-pill w-100 btn-sm" disabled>
+                            <i class="bi bi-chat-dots me-2"></i>Message
+                        </button>
+
+                    {% elif is_pending_in %}
+                        <div class="d-flex gap-2">
+                            <form method="post" action="{% url 'accept_connection' conn.id %}" class="flex-grow-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-success rounded-pill w-100 fw-bold">
+                                    <i class="bi bi-check-lg me-1"></i>Accept
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'reject_connection' conn.id %}" class="flex-grow-1">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-outline-danger rounded-pill w-100 fw-bold">
+                                    <i class="bi bi-x-lg me-1"></i>Reject
+                                </button>
+                            </form>
+                        </div>
+                        <button class="btn btn-outline-light rounded-pill w-100 btn-sm" disabled>
+                            <i class="bi bi-chat-dots me-2"></i>Message
+                        </button>
+
+                    {% else %}
+                        <form method="post" action="{% url 'send_connection_request' viewed_user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary rounded-pill w-100 fw-bold">
+                                <i class="bi bi-person-plus-fill me-2"></i>Connect
+                            </button>
+                        </form>
+                        <button class="btn btn-outline-secondary rounded-pill w-100 btn-sm" disabled
+                                title="Connect first to message">
+                            <i class="bi bi-chat-dots me-2"></i>Message
+                        </button>
+                        <p class="text-white-50 small mb-0">
+                            <i class="bi bi-lock me-1"></i>Connect to unlock messaging &amp; full profile.
+                        </p>
+                    {% endif %}
+
+                    <a href="{% url 'chat_page' %}" class="btn btn-outline-light rounded-pill w-100 btn-sm">
+                        <i class="bi bi-people me-2"></i>Community Chat
+                    </a>
+
+                    <!-- Report User -->
+                    <button class="btn btn-sm rounded-pill w-100 mt-1"
+                            style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#f87171;"
+                            data-bs-toggle="modal" data-bs-target="#reportModal">
+                        <i class="bi bi-flag me-1"></i>Report User
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Modal -->
+            <div class="modal fade" id="reportModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content" style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;">
+                        <div class="modal-header" style="border-color:rgba(255,255,255,0.08);">
+                            <h6 class="modal-title text-white fw-bold">
+                                <i class="bi bi-flag-fill text-danger me-2"></i>Report {{ viewed_user.username }}
+                            </h6>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="post" action="{% url 'submit_report' viewed_user.id %}">
+                            {% csrf_token %}
+                            <div class="modal-body">
+                                <label class="text-white-50 small mb-2">Reason for report</label>
+                                <textarea name="reason" rows="4" required maxlength="1000"
+                                          class="glass-input form-control"
+                                          placeholder="Describe the issue…"></textarea>
+                            </div>
+                            <div class="modal-footer" style="border-color:rgba(255,255,255,0.08);">
+                                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-danger btn-sm rounded-pill px-4">
+                                    <i class="bi bi-flag me-1"></i>Submit Report
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Card (bio always public) -->
+            <div class="glass-card p-4">
+                <div class="up-section-head mb-3">
+                    <div class="up-section-icon"><i class="bi bi-person-lines-fill"></i></div>
+                    <span class="up-section-title">About</span>
+                </div>
+                {% if profile.bio %}
+                <p class="text-white-50 mb-0" style="line-height:1.7;font-size:0.9rem;">{{ profile.bio }}</p>
+                {% else %}
+                <p class="text-white-50 small mb-0 fst-italic">No bio provided.</p>
+                {% endif %}
+            </div>
+
+            <!-- Public Activity Card (always visible, date only) -->
+            <div class="glass-card p-4">
+                <div class="up-section-head mb-3">
+                    <div class="up-section-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                    <span class="up-section-title">Activity</span>
+                    <span class="ms-auto badge rounded-pill"
+                          style="background:rgba(255,255,255,0.06);color:#94a3b8;border:1px solid rgba(255,255,255,0.1);font-size:0.68rem;">
+                        Public
+                    </span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Total Sessions</span>
+                    <span class="up-detail-value fw-bold text-white">{{ total_sessions }}</span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Last Active</span>
+                    <span class="up-detail-value">
+                        {% if last_active_public %}{{ last_active_public|date:"M d, Y" }}{% else %}—{% endif %}
+                    </span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Member Since</span>
+                    <span class="up-detail-value">{{ viewed_user.date_joined|date:"M d, Y" }}</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ── Right Column ────────────────────────────────── -->
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+            {% if is_connected %}
+            <!-- ══ CONNECTED: full private sections ══ -->
+
+            <!-- Mental Health Summary -->
+            <div class="glass-card p-4">
+                <div class="up-section-head mb-3">
+                    <div class="up-section-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                    <span class="up-section-title">Mental Health Summary</span>
+                    <span class="ms-auto badge rounded-pill"
+                          style="background:rgba(16,185,129,0.15);color:#34d399;border:1px solid rgba(16,185,129,0.3);font-size:0.7rem;">
+                        <i class="bi bi-patch-check-fill me-1"></i>Connected
+                    </span>
+                </div>
+
+                <div class="row g-3">
+                    <!-- Dominant Emotion -->
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(250,204,21,0.12);color:#fde047;">
+                                <i class="bi bi-emoji-smile"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span class="epill-sm {{ analytics.most_common_pill }}">
+                                    {{ analytics.most_common }}
+                                </span>
+                            </div>
+                            <div class="up-stat-lbl">Dominant Emotion</div>
+                        </div>
+                    </div>
+                    <!-- Stress Level -->
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(239,68,68,0.12);color:#f87171;">
+                                <i class="bi bi-activity"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span class="rp-stress-badge
+                                    {% if analytics.stress_label == 'High' %}rp-stress-high
+                                    {% elif analytics.stress_label == 'Medium' %}rp-stress-medium
+                                    {% else %}rp-stress-low{% endif %}">
+                                    {{ analytics.stress_label }}
+                                </span>
+                            </div>
+                            <div class="up-stat-lbl">Stress Level</div>
+                        </div>
+                    </div>
+                    <!-- Trend -->
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(16,185,129,0.12);color:#34d399;">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span style="color:{{ analytics.trend_color }};font-weight:600;font-size:0.9rem;">
+                                    <i class="bi {{ analytics.trend_icon }} me-1"></i>{{ analytics.trend }}
+                                </span>
+                            </div>
+                            <div class="up-stat-lbl">Trend</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emotion Breakdown Bars -->
+                {% if analytics.emotion_distribution %}
+                <div class="mt-4">
+                    <p class="text-white-50 small text-uppercase fw-bold mb-2" style="letter-spacing:.06em;">
+                        Emotion Breakdown
+                    </p>
+                    {% for item in analytics.emotion_distribution %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="epill-sm {{ item.pill }}" style="min-width:72px;text-align:center;">
+                            {{ item.emotion }}
+                        </span>
+                        <div class="rp-dist-bar-track flex-grow-1">
+                            <div class="rp-dist-bar-fill"
+                                 style="width:{{ item.pct }}%;background:
+                                    {% if item.pill == 'happy' %}#fde047
+                                    {% elif item.pill == 'sad' %}#60a5fa
+                                    {% elif item.pill == 'angry' %}#f87171
+                                    {% elif item.pill == 'fear' %}#a78bfa
+                                    {% elif item.pill == 'surprise' %}#f472b6
+                                    {% elif item.pill == 'disgust' %}#fb923c
+                                    {% else %}#94a3b8{% endif %};">
+                            </div>
+                        </div>
+                        <span class="text-white-50 small" style="min-width:38px;text-align:right;">
+                            {{ item.pct }}%
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Detailed Activity + Support Preference -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="up-section-head mb-3">
+                            <div class="up-section-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+                                <i class="bi bi-lightning-charge"></i>
+                            </div>
+                            <span class="up-section-title">Detailed Activity</span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Total Sessions</span>
+                            <span class="up-detail-value fw-bold text-white">{{ analytics.total_sessions }}</span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Last Active</span>
+                            <span class="up-detail-value">
+                                {% if analytics.last_active %}
+                                    {{ analytics.last_active|date:"M d, Y H:i" }}
+                                {% else %}—{% endif %}
+                            </span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Member Since</span>
+                            <span class="up-detail-value">{{ viewed_user.date_joined|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="up-section-head mb-3">
+                            <div class="up-section-icon" style="background:rgba(16,185,129,0.15);color:#34d399;">
+                                <i class="bi bi-hand-thumbs-up"></i>
+                            </div>
+                            <span class="up-section-title">Support Preference</span>
+                        </div>
+                        {% if profile.support_preference %}
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <div class="up-stat-icon"
+                                 style="background:rgba(255,255,255,0.06);color:{{ profile.get_support_color }};">
+                                <i class="bi {{ profile.get_support_icon }}"></i>
+                            </div>
+                            <div>
+                                <div class="text-white fw-semibold">{{ profile.get_support_display_label }}</div>
+                                <div class="text-white-50 small">
+                                    {% if profile.support_preference == 'talk' %}Ready to share and connect.
+                                    {% elif profile.support_preference == 'listen' %}Here to listen and support.
+                                    {% else %}Looking for emotional support.{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-white-50 small mb-0 fst-italic">Not specified.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- ══ NOT CONNECTED: single locked card covering all private sections ══ -->
+
+            <div class="glass-card up-locked-card">
+                <!-- Blurred ghost content behind overlay -->
+                <div class="up-lock-ghost p-4">
+                    <div class="up-section-head mb-3">
+                        <div class="up-section-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;">
+                            <i class="bi bi-heart-pulse"></i>
+                        </div>
+                        <span class="up-section-title">Mental Health Summary</span>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        {% for _ in "123" %}
+                        <div class="col-sm-4">
+                            <div class="up-stat-block">
+                                <div class="up-stat-icon" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.1);">
+                                    <i class="bi bi-circle"></i>
+                                </div>
+                                <div class="up-ghost-bar" style="width:60%;margin:8px auto 4px;"></div>
+                                <div class="up-ghost-bar" style="width:40%;margin:0 auto;height:8px;"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% for _ in "12345" %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <div class="up-ghost-bar" style="width:72px;height:22px;border-radius:20px;flex-shrink:0;"></div>
+                        <div class="rp-dist-bar-track flex-grow-1">
+                            <div class="rp-dist-bar-fill" style="width:{% cycle '65' '45' '30' '20' '10' %}%;background:rgba(255,255,255,0.08);"></div>
+                        </div>
+                        <div class="up-ghost-bar" style="width:36px;height:14px;"></div>
+                    </div>
+                    {% endfor %}
+                    <!-- Ghost activity + support row -->
+                    <div class="row g-4 mt-1">
+                        <div class="col-md-6">
+                            <div class="up-section-head mb-2">
+                                <div class="up-section-icon"><i class="bi bi-lightning-charge"></i></div>
+                                <span class="up-section-title">Detailed Activity</span>
+                            </div>
+                            {% for _ in "123" %}
+                            <div class="d-flex justify-content-between py-2" style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                <div class="up-ghost-bar" style="width:80px;"></div>
+                                <div class="up-ghost-bar" style="width:60px;"></div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <div class="up-section-head mb-2">
+                                <div class="up-section-icon"><i class="bi bi-hand-thumbs-up"></i></div>
+                                <span class="up-section-title">Support Preference</span>
+                            </div>
+                            <div class="d-flex align-items-center gap-3 mt-2">
+                                <div class="up-ghost-bar" style="width:44px;height:44px;border-radius:12px;flex-shrink:0;"></div>
+                                <div>
+                                    <div class="up-ghost-bar" style="width:100px;margin-bottom:6px;"></div>
+                                    <div class="up-ghost-bar" style="width:140px;height:10px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lock overlay on top -->
+                <div class="up-lock-overlay">
+                    <div class="up-lock-body">
+                        <div class="up-lock-icon"><i class="bi bi-lock-fill"></i></div>
+                        <h6 class="text-white fw-bold mb-1">Private Information</h6>
+                        <p class="text-white-50 small mb-3">
+                            Connect with <strong class="text-white">{{ viewed_user.username }}</strong> to view their
+                            mental health summary, emotion history, stress trends, and activity details.
+                        </p>
+                        <!-- Emotion badge preview (teaser) -->
+                        <div class="d-flex flex-wrap justify-content-center gap-1 mb-3">
+                            <span class="epill-sm happy">Happy</span>
+                            <span class="epill-sm sad">Sad</span>
+                            <span class="epill-sm angry">Angry</span>
+                            <span class="epill-sm neutral">Neutral</span>
+                        </div>
+                        {% if not is_pending_out and not is_pending_in %}
+                        <form method="post" action="{% url 'send_connection_request' viewed_user.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">
+                                <i class="bi bi-person-plus-fill me-2"></i>Connect to Unlock
+                            </button>
+                        </form>
+                        {% elif is_pending_out %}
+                        <button class="btn rounded-pill px-4 fw-semibold" disabled
+                                style="background:rgba(100,116,139,0.15);border:1px solid rgba(100,116,139,0.3);color:#94a3b8;">
+                            <i class="bi bi-hourglass-split me-2"></i>Request Sent
+                        </button>
+                        {% elif is_pending_in %}
+                        <div class="d-flex gap-2 justify-content-center">
+                            <form method="post" action="{% url 'accept_connection' conn.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-success rounded-pill px-4 fw-bold">
+                                    <i class="bi bi-check-lg me-1"></i>Accept &amp; Unlock
+                                </button>
+                            </form>
+                            <form method="post" action="{% url 'reject_connection' conn.id %}">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="btn btn-outline-danger rounded-pill px-3">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

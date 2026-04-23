@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Account Blocked — MindMonitor AI{% endblock %}
+
+{% block content %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center" style="position:relative;z-index:1;">
+    <div class="text-center" style="max-width:440px;">
+        <div class="mx-auto mb-4 d-flex align-items-center justify-content-center rounded-circle"
+             style="width:80px;height:80px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);">
+            <i class="bi bi-slash-circle-fill text-danger" style="font-size:2.2rem;"></i>
+        </div>
+        <h2 class="text-white fw-bold mb-2">Account Suspended</h2>
+        <p class="text-white-50 mb-4">
+            Your account has been suspended by a platform administrator.<br>
+            If you believe this is a mistake, please contact support.
+        </p>
+        <a href="{% url 'logout' %}" class="btn btn-outline-danger rounded-pill px-5 fw-bold">
+            <i class="bi bi-box-arrow-right me-2"></i>Sign Out
+        </a>
+    </div>
+</div>
+{% endblock %}

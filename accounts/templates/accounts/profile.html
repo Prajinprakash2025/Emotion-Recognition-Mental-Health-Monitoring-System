@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}My Profile — MindMonitor AI{% endblock %}
+
+{% block content %}
+<div class="container section-pad">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <span class="section-badge">Account</span>
+            <h2 class="text-white fw-bold mt-1 mb-0">
+                <i class="bi bi-person-circle text-accent me-2"></i>My Profile
+            </h2>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-light rounded-pill btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+
+    <div class="row g-4">
+
+        <!-- ── Left column ─────────────────────────────────── -->
+        <div class="col-lg-4 d-flex flex-column gap-4">
+
+            <!-- Identity card -->
+            <div class="glass-card p-4 text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=3b82f6&color=fff&size=128&bold=true"
+                         class="rounded-circle up-avatar" alt="{{ user.username }}">
+                    {% if user.is_superuser %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-danger border border-dark">Admin</span>
+                    {% else %}
+                    <span class="position-absolute bottom-0 end-0 badge rounded-pill bg-success border border-dark">User</span>
+                    {% endif %}
+                </div>
+                <h4 class="text-white fw-bold mb-1">{{ user.username }}</h4>
+                <p class="text-white-50 small mb-3">{{ user.email|default:"No email set" }}</p>
+
+                <!-- Support preference badge -->
+                {% if profile.support_preference %}
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3"
+                     style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                    <i class="bi {{ profile.get_support_icon }} small"
+                       style="color:{{ profile.get_support_color }};"></i>
+                    <span class="small" style="color:{{ profile.get_support_color }};">
+                        {{ profile.get_support_display_label }}
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Quick stats -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="up-mini-stat">
+                            <div class="up-mini-val">{{ total_sessions }}</div>
+                            <div class="up-mini-lbl">Sessions</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="up-mini-stat">
+                            <span class="epill-sm {{ most_common_pill }} d-inline-block">{{ most_common }}</span>
+                            <div class="up-mini-lbl mt-1">Dominant Mood</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex flex-column gap-2">
+                    <a href="{% url 'reports' %}" class="btn btn-outline-light rounded-pill w-100 btn-sm">
+                        <i class="bi bi-clock-history me-2"></i>View Reports
+                    </a>
+                    <a href="{% url 'connections_page' %}" class="btn btn-outline-light rounded-pill w-100 btn-sm">
+                        <i class="bi bi-people me-2"></i>Connections
+                    </a>
+                    {% if user.is_superuser %}
+                    <a href="{% url 'admin_dashboard' %}" class="btn btn-outline-danger rounded-pill w-100 btn-sm">
+                        <i class="bi bi-shield-lock me-2"></i>Admin Panel
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'logout' %}" class="btn btn-outline-secondary rounded-pill w-100 btn-sm">
+                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                    </a>
+                </div>
+            </div>
+
+            <!-- Account details card -->
+            <div class="glass-card p-4">
+                <div class="up-section-head">
+                    <div class="up-section-icon"><i class="bi bi-info-circle"></i></div>
+                    <span class="up-section-title">Account Details</span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Member Since</span>
+                    <span class="up-detail-value">{{ user.date_joined|date:"M d, Y" }}</span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Last Login</span>
+                    <span class="up-detail-value">{{ user.last_login|date:"M d, Y H:i" }}</span>
+                </div>
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Account Type</span>
+                    <span class="up-detail-value">{% if user.is_superuser %}Administrator{% else %}Standard User{% endif %}</span>
+                </div>
+                {% if profile.gender %}
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Gender</span>
+                    <span class="up-detail-value">{{ profile.get_gender_display }}</span>
+                </div>
+                {% endif %}
+                {% if profile.age %}
+                <div class="up-detail-row">
+                    <span class="up-detail-label">Age</span>
+                    <span class="up-detail-value">{{ profile.age }}</span>
+                </div>
+                {% endif %}
+                {% if profile.city %}
+                <div class="up-detail-row">
+                    <span class="up-detail-label">City</span>
+                    <span class="up-detail-value">{{ profile.city }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- ── Right column ────────────────────────────────── -->
+        <div class="col-lg-8 d-flex flex-column gap-4">
+
+            <!-- About / Bio card -->
+            <div class="glass-card p-4">
+                <div class="up-section-head mb-3">
+                    <div class="up-section-icon"><i class="bi bi-person-lines-fill"></i></div>
+                    <span class="up-section-title">About Me</span>
+                    <button class="btn btn-sm btn-outline-light rounded-pill ms-auto px-3"
+                            id="editBioBtn" onclick="toggleBioEdit()">
+                        <i class="bi bi-pencil me-1"></i>Edit
+                    </button>
+                </div>
+
+                <!-- Display mode -->
+                <div id="bioDisplay">
+                    {% if profile.bio %}
+                    <p class="text-white-50 mb-0" style="line-height:1.7;">{{ profile.bio }}</p>
+                    {% else %}
+                    <p class="text-white-50 small mb-0 fst-italic">No bio yet. Click Edit to add one.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Edit mode -->
+                <form method="post" id="bioForm" class="d-none">
+                    {% csrf_token %}
+                    <textarea name="bio" class="glass-input w-100 mb-2" rows="3"
+                              maxlength="300" placeholder="Write a short bio…"
+                              style="border-radius:12px!important;">{{ profile.bio }}</textarea>
+                    <div class="d-flex gap-2 align-items-center">
+                        <select name="support_preference" class="glass-input" style="max-width:220px;">
+                            <option value="" {% if not profile.support_preference %}selected{% endif %}>Support preference…</option>
+                            <option value="talk"   {% if profile.support_preference == 'talk'   %}selected{% endif %}>Open to Talk</option>
+                            <option value="listen" {% if profile.support_preference == 'listen' %}selected{% endif %}>Prefer Listening</option>
+                            <option value="need"   {% if profile.support_preference == 'need'   %}selected{% endif %}>Needs Support</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm">Save</button>
+                        <button type="button" class="btn btn-outline-secondary rounded-pill px-3 btn-sm"
+                                onclick="toggleBioEdit()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Mental Health Summary -->
+            <div class="glass-card p-4">
+                <div class="up-section-head mb-3">
+                    <div class="up-section-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;">
+                        <i class="bi bi-heart-pulse"></i>
+                    </div>
+                    <span class="up-section-title">Mental Health Summary</span>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(250,204,21,0.12);color:#fde047;">
+                                <i class="bi bi-emoji-smile"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span class="epill-sm {{ most_common_pill }}">{{ most_common }}</span>
+                            </div>
+                            <div class="up-stat-lbl">Dominant Emotion</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(239,68,68,0.12);color:#f87171;">
+                                <i class="bi bi-activity"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span class="rp-stress-badge
+                                    {% if stress_label == 'High' %}rp-stress-high
+                                    {% elif stress_label == 'Medium' %}rp-stress-medium
+                                    {% else %}rp-stress-low{% endif %}">
+                                    {{ stress_label }}
+                                </span>
+                            </div>
+                            <div class="up-stat-lbl">Stress Level</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="up-stat-block">
+                            <div class="up-stat-icon" style="background:rgba(16,185,129,0.12);color:#34d399;">
+                                <i class="bi bi-graph-up-arrow"></i>
+                            </div>
+                            <div class="up-stat-val">
+                                <span style="color:{{ trend_color }};font-weight:600;font-size:0.9rem;">
+                                    <i class="bi {{ trend_icon }} me-1"></i>{{ trend }}
+                                </span>
+                            </div>
+                            <div class="up-stat-lbl">Trend</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Emotion distribution bars -->
+                {% if emotion_distribution %}
+                <div class="mt-4">
+                    <p class="text-white-50 small text-uppercase fw-bold mb-2" style="letter-spacing:.06em;">
+                        Emotion Breakdown
+                    </p>
+                    {% for item in emotion_distribution %}
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="epill-sm {{ item.pill }}" style="min-width:72px;text-align:center;">
+                            {{ item.emotion }}
+                        </span>
+                        <div class="rp-dist-bar-track flex-grow-1">
+                            <div class="rp-dist-bar-fill"
+                                 style="width:{{ item.pct }}%;background:
+                                    {% if item.pill == 'happy' %}#fde047
+                                    {% elif item.pill == 'sad' %}#60a5fa
+                                    {% elif item.pill == 'angry' %}#f87171
+                                    {% elif item.pill == 'fear' %}#a78bfa
+                                    {% elif item.pill == 'surprise' %}#f472b6
+                                    {% elif item.pill == 'disgust' %}#fb923c
+                                    {% else %}#94a3b8{% endif %};">
+                            </div>
+                        </div>
+                        <span class="text-white-50 small" style="min-width:38px;text-align:right;">
+                            {{ item.pct }}%
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Activity + Support Preference row -->
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="up-section-head mb-3">
+                            <div class="up-section-icon" style="background:rgba(59,130,246,0.15);color:#60a5fa;">
+                                <i class="bi bi-lightning-charge"></i>
+                            </div>
+                            <span class="up-section-title">Activity</span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Total Sessions</span>
+                            <span class="up-detail-value fw-bold text-white">{{ total_sessions }}</span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Last Active</span>
+                            <span class="up-detail-value">
+                                {% if last_active %}{{ last_active|date:"M d, Y H:i" }}{% else %}—{% endif %}
+                            </span>
+                        </div>
+                        <div class="up-detail-row">
+                            <span class="up-detail-label">Member Since</span>
+                            <span class="up-detail-value">{{ user.date_joined|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="glass-card p-4 h-100">
+                        <div class="up-section-head mb-3">
+                            <div class="up-section-icon" style="background:rgba(16,185,129,0.15);color:#34d399;">
+                                <i class="bi bi-hand-thumbs-up"></i>
+                            </div>
+                            <span class="up-section-title">Support Preference</span>
+                        </div>
+                        {% if profile.support_preference %}
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            <div class="up-stat-icon"
+                                 style="background:rgba(255,255,255,0.06);color:{{ profile.get_support_color }};">
+                                <i class="bi {{ profile.get_support_icon }}"></i>
+                            </div>
+                            <div>
+                                <div class="text-white fw-semibold">{{ profile.get_support_display_label }}</div>
+                                <div class="text-white-50 small">
+                                    {% if profile.support_preference == 'talk' %}
+                                        Ready to share and connect with others.
+                                    {% elif profile.support_preference == 'listen' %}
+                                        Here to listen and support others.
+                                    {% else %}
+                                        Looking for emotional support.
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-white-50 small mb-0 fst-italic">
+                            Not set. Edit your profile to add a preference.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function toggleBioEdit() {
+    document.getElementById('bioDisplay').classList.toggle('d-none');
+    document.getElementById('bioForm').classList.toggle('d-none');
+    const btn = document.getElementById('editBioBtn');
+    btn.innerHTML = btn.innerHTML.includes('Edit')
+        ? '<i class="bi bi-x me-1"></i>Cancel'
+        : '<i class="bi bi-pencil me-1"></i>Edit';
+}
+</script>
+{% endblock %}
