@@ -16,4 +16,6 @@ __pycache__/
 .idea/
 
 # Note: The user explicitly requested to INCLUDE db.sqlite3 and ml_models/ in git
-# so we are NOT ignoring them.
+# so we are NOT ignoring them entirely.
+# However, emotion_model.h5 is >100MB and fails to push to GitHub, so we must ignore it.
+ml_models/emotion_model.h5

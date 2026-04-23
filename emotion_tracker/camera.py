@@ -13,10 +13,11 @@ from django.conf import settings
 
 from .models import EmotionLog
 
-# Use the new lightweight model if available, otherwise fall back to old VGG16
+# The user preferred the old VGG16 model as it was working better for all emotions.
 MODEL_V2_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'emotion_model_v2.h5')
 MODEL_V1_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'emotion_model.h5')
-MODEL_PATH = MODEL_V2_PATH if os.path.exists(MODEL_V2_PATH) else MODEL_V1_PATH
+# Forcing the use of the old model (MODEL_V1_PATH)
+MODEL_PATH = MODEL_V1_PATH
 HAAR_PATH = os.path.join(settings.BASE_DIR, 'ml_models', 'haarcascade_frontalface_default.xml')
 
 
